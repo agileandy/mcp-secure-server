@@ -1,0 +1,98 @@
+# Security Policy Configuration
+# MCP Secure Local Server v1.0
+version: "1.0"
+
+network:
+  # Allowed local network ranges - everything else blocked
+  allowed_ranges:
+    - "127.0.0.0/8"
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+    - "::1/128"
+    - "fe80::/10"
+  
+  # Explicitly allowed external endpoints (for tools like web search)
+  allowed_endpoints:
+    - host: "api.duckduckgo.com"
+      ports: [443]
+      description: "DuckDuckGo search API"
+    - host: "html.duckduckgo.com"
+      ports: [443]
+      description: "DuckDuckGo HTML search"
+    - host: "lite.duckduckgo.com"
+      ports: [443]
+      description: "DuckDuckGo Lite"
+  
+  # Block these ports even on local network
+  blocked_ports:
+    - 22    # SSH (prevent lateral movement)
+  
+  # DNS settings
+  allow_dns: true  # Required for allowed_endpoints resolution
+  dns_allowlist:
+    - "api.duckduckgo.com"
+    - "html.duckduckgo.com"
+    - "lite.duckduckgo.com"
+
+filesystem:
+  # Allowed paths (glob patterns, environment variables expanded)
+  allowed_paths:
+    - "${HOME}/projects/**"
+    - "${HOME}/workspace/**"
+    - "${HOME}/Dev-Space/**"
+    - "/tmp/mcp-workspace/**"
+  
+  # Explicitly denied (takes precedence over allowed)
+  denied_paths:
+    - "**/.ssh/**"
+    - "**/.aws/**"
+    - "**/.gnupg/**"
+    - "**/*.pem"
+    - "**/*.key"
+    - "**/.env"
+    - "**/.env.*"
+    - "**/secrets/**"
+    - "**/.git/config"
+
+commands:
+  # Blocked commands (security risk)
+  blocked:
+    - "curl"
+    - "wget"
+    - "ssh"
+    - "scp"
+    - "rsync"
+    - "nc"
+    - "netcat"
+    - "telnet"
+    - "ftp"
+    - "sftp"
+
+tools:
+  # Per-tool rate limits (requests per minute)
+  rate_limits:
+    default: 60
+    filesystem_write: 30
+    command_execute: 10
+    web_search: 20
+  
+  # Timeout in seconds
+  timeout: 30
+
+audit:
+  # Log file location
+  log_file: "${HOME}/.mcp-secure/audit.log"
+  
+  # What to log
+  log_level: "INFO"
+  
+  # Include these in audit log
+  include:
+    - timestamp
+    - request_id
+    - tool_name
+    - arguments
+    - result_status
+    - execution_time
+    - security_events
