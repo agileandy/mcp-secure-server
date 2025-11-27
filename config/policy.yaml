@@ -1,8 +1,58 @@
+# ==============================================================================
 # Security Policy Configuration
 # MCP Secure Local Server v1.0
+# ==============================================================================
+#
+# This file controls ALL security aspects of the MCP server. The security model
+# is DENY-BY-DEFAULT - anything not explicitly allowed here is blocked.
+#
+# DEVELOPER GUIDE: Adding Security Policy for New Plugins
+# --------------------------------------------------------
+#
+# When you add a new plugin (e.g., a database query tool), you MUST update
+# this policy file to:
+#
+# 1. Allow network access to required endpoints (if any)
+# 2. Add rate limits to prevent abuse
+# 3. Add any custom validation rules for your tool's inputs
+#
+# Example: Adding a PostgreSQL database plugin
+# ---------------------------------------------
+#
+# Under 'network.allowed_endpoints', add:
+#
+#   - host: "db-readonly.internal.company.com"
+#     ports: [5432]
+#     description: "PostgreSQL read replica for analytics queries"
+#
+# Under 'tools.rate_limits', add:
+#
+#   query_database: 30  # 30 queries per minute max
+#
+# For database-specific security, add a 'database' section (see example below).
+#
+# SECURITY PRINCIPLES
+# -------------------
+# - Least privilege: Only allow what's strictly necessary
+# - Defense in depth: Validate at multiple layers (policy + plugin code)
+# - Fail closed: Unknown/malformed inputs are rejected
+# - Audit everything: All operations are logged
+#
+# ==============================================================================
+
 version: "1.0"
 
 network:
+  # ---------------------------------------------------------------------------
+  # NETWORK SECURITY
+  # ---------------------------------------------------------------------------
+  # By default, ALL network access is blocked. You must explicitly allow:
+  # - Local network ranges (for internal services)
+  # - Specific external endpoints (for third-party APIs)
+  #
+  # For a database plugin, you would add your database host here.
+  # ---------------------------------------------------------------------------
+
   # Allowed local network ranges - everything else blocked
   allowed_ranges:
     - "127.0.0.0/8"
@@ -13,6 +63,26 @@ network:
     - "fe80::/10"
   
   # Explicitly allowed external endpoints (for tools like web search)
+  # ---------------------------------------------------------------------------
+  # EXAMPLE: Adding database access
+  # ---------------------------------------------------------------------------
+  # To allow a PostgreSQL database plugin to connect, add:
+  #
+  #   - host: "db-readonly.internal.company.com"
+  #     ports: [5432]
+  #     description: "PostgreSQL read replica"
+  #
+  # To allow a MySQL database:
+  #
+  #   - host: "mysql.internal.company.com"
+  #     ports: [3306]
+  #     description: "MySQL analytics database"
+  #
+  # SECURITY NOTES:
+  # - Always use a READ-ONLY replica, never the primary database
+  # - Use a dedicated service account with minimal permissions
+  # - Consider IP allowlisting on the database side too
+  # ---------------------------------------------------------------------------
   allowed_endpoints:
     - host: "api.duckduckgo.com"
       ports: [443]
@@ -70,6 +140,25 @@ commands:
     - "sftp"
 
 tools:
+  # ---------------------------------------------------------------------------
+  # TOOL RATE LIMITS AND TIMEOUTS
+  # ---------------------------------------------------------------------------
+  # Rate limits prevent abuse and protect backend systems.
+  # When adding a new plugin, add a rate limit entry here.
+  #
+  # EXAMPLE: Adding database query rate limit
+  # ---------------------------------------------------------------------------
+  # For a database plugin, you'd add:
+  #
+  #   query_database: 30    # 30 queries per minute
+  #   list_tables: 10       # 10 table listings per minute
+  #
+  # Consider:
+  # - How expensive is the operation? (DB queries cost more than local ops)
+  # - What's a reasonable usage pattern? (Bursty vs steady)
+  # - What would abuse look like? (Set limit below that threshold)
+  # ---------------------------------------------------------------------------
+
   # Per-tool rate limits (requests per minute)
   rate_limits:
     default: 60
@@ -96,3 +185,80 @@ audit:
     - result_status
     - execution_time
     - security_events
+
+# ==============================================================================
+# DATABASE SECURITY (Example Configuration)
+# ==============================================================================
+#
+# If you're adding a database query plugin, uncomment and configure this section.
+# The InputValidator can be extended to check these rules before query execution.
+#
+# This is an EXAMPLE - you would need to extend the security/validator.py to
+# actually parse and enforce these rules. See docs/PLUGIN_DEVELOPMENT.md for
+# implementation guidance.
+#
+# database:
+#   # ---------------------------------------------------------------------------
+#   # SQL KEYWORD BLOCKING
+#   # ---------------------------------------------------------------------------
+#   # These SQL keywords/patterns will be blocked in any query.
+#   # This is defense-in-depth - your DB user should also lack these permissions.
+#   # ---------------------------------------------------------------------------
+#   blocked_keywords:
+#     - "INSERT"
+#     - "UPDATE"
+#     - "DELETE"
+#     - "DROP"
+#     - "TRUNCATE"
+#     - "ALTER"
+#     - "CREATE"
+#     - "GRANT"
+#     - "REVOKE"
+#     - "EXEC"
+#     - "EXECUTE"
+#     - "CALL"          # Stored procedure execution
+#     - "INTO OUTFILE"  # MySQL file write
+#     - "LOAD_FILE"     # MySQL file read
+#     - "pg_read_file"  # PostgreSQL file read
+#     - "pg_write_file" # PostgreSQL file write
+#
+#   # ---------------------------------------------------------------------------
+#   # TABLE ACCESS CONTROL
+#   # ---------------------------------------------------------------------------
+#   # Tables/schemas that should NEVER be queried, even with SELECT.
+#   # These typically contain sensitive data that shouldn't be exposed.
+#   # ---------------------------------------------------------------------------
+#   blocked_tables:
+#     - "users"             # User credentials
+#     - "user_credentials"
+#     - "passwords"
+#     - "api_keys"
+#     - "secrets"
+#     - "sessions"
+#     - "oauth_tokens"
+#     - "payment_methods"
+#     - "credit_cards"
+#     - "audit_log"         # Don't let queries see audit trail
+#     - "pg_catalog.*"      # PostgreSQL system tables
+#     - "information_schema.user_privileges"
+#
+#   # ---------------------------------------------------------------------------
+#   # QUERY LIMITS
+#   # ---------------------------------------------------------------------------
+#   # Prevent resource exhaustion and accidental large queries.
+#   # ---------------------------------------------------------------------------
+#   query_timeout: 30       # Max seconds a query can run
+#   max_rows: 1000          # Max rows returned (LIMIT enforced)
+#   max_query_length: 4096  # Max characters in a query
+#
+#   # ---------------------------------------------------------------------------
+#   # ALLOWED SCHEMAS (Optional - whitelist approach)
+#   # ---------------------------------------------------------------------------
+#   # If set, ONLY these schemas can be queried. More restrictive than blocklist.
+#   # ---------------------------------------------------------------------------
+#   # allowed_schemas:
+#   #   - "analytics"
+#   #   - "reporting"
+#   #   - "public_data"
+#
+# ==============================================================================
