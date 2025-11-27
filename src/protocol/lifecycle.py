@@ -1,0 +1,113 @@
+"""MCP lifecycle management.
+
+Handles the initialize/initialized handshake and tracks connection state.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any
+
+# Supported MCP protocol version
+MCP_PROTOCOL_VERSION = "2025-11-25"
+
+
+class LifecycleState(Enum):
+    """MCP connection lifecycle states."""
+
+    UNINITIALIZED = "uninitialized"
+    INITIALIZING = "initializing"
+    READY = "ready"
+    SHUTDOWN = "shutdown"
+
+
+class ProtocolError(Exception):
+    """Raised when protocol constraints are violated."""
+
+    pass
+
+
+@dataclass
+class LifecycleManager:
+    """Manages MCP connection lifecycle.
+
+    Handles the initialization handshake and tracks connection state
+    per MCP specification.
+    """
+
+    server_info: dict[str, str] = field(
+        default_factory=lambda: {"name": "mcp-secure-local", "version": "1.0.0"}
+    )
+    capabilities: dict[str, Any] = field(default_factory=lambda: {"tools": {"listChanged": True}})
+    state: LifecycleState = LifecycleState.UNINITIALIZED
+    client_info: dict[str, str] | None = None
+    client_capabilities: dict[str, Any] | None = None
+
+    @property
+    def is_ready(self) -> bool:
+        """Check if the connection is ready for operations."""
+        return self.state == LifecycleState.READY
+
+    def require_ready(self) -> None:
+        """Assert that the connection is ready.
+
+        Raises:
+            ProtocolError: If not ready for operations.
+        """
+        if self.state == LifecycleState.SHUTDOWN:
+            raise ProtocolError("Connection is shutdown")
+        if self.state != LifecycleState.READY:
+            raise ProtocolError("Connection is not ready")
+
+    def handle_initialize(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Handle initialize request.
+
+        Args:
+            params: Initialize request parameters.
+
+        Returns:
+            Initialize response result.
+
+        Raises:
+            ProtocolError: If already initialized or version unsupported.
+        """
+        if self.state not in (LifecycleState.UNINITIALIZED,):
+            raise ProtocolError("Server already initialized")
+
+        # Validate protocol version
+        requested_version = params.get("protocolVersion")
+        if requested_version != MCP_PROTOCOL_VERSION:
+            raise ProtocolError(
+                f"Unsupported protocol version: {requested_version}. "
+                f"Expected: {MCP_PROTOCOL_VERSION}"
+            )
+
+        # Store client info
+        self.client_info = params.get("clientInfo")
+        self.client_capabilities = params.get("capabilities", {})
+
+        # Transition state
+        self.state = LifecycleState.INITIALIZING
+
+        # Return server capabilities
+        return {
+            "protocolVersion": MCP_PROTOCOL_VERSION,
+            "capabilities": self.capabilities,
+            "serverInfo": self.server_info,
+        }
+
+    def handle_initialized(self) -> None:
+        """Handle initialized notification.
+
+        Raises:
+            ProtocolError: If not in initializing state.
+        """
+        if self.state != LifecycleState.INITIALIZING:
+            raise ProtocolError("Server not initializing")
+
+        self.state = LifecycleState.READY
+
+    def handle_shutdown(self) -> None:
+        """Handle shutdown request."""
+        self.state = LifecycleState.SHUTDOWN
