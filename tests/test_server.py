@@ -109,8 +109,10 @@ class TestMCPServer:
         server.register_plugin(MockPlugin())
 
         tools = server.list_tools()
-        assert len(tools) == 1
-        assert tools[0]["name"] == "echo"
+        # 2 discovery tools auto-registered + 1 mock plugin tool
+        assert len(tools) == 3
+        tool_names = {t["name"] for t in tools}
+        assert "echo" in tool_names
 
     def test_handles_initialize(self, server: MCPServer):
         """Should handle initialize request."""
@@ -149,7 +151,8 @@ class TestMCPServer:
         assert result["id"] == 2
         assert "result" in result
         assert "tools" in result["result"]
-        assert len(result["result"]["tools"]) == 1
+        # 2 discovery tools auto-registered + 1 mock plugin tool
+        assert len(result["result"]["tools"]) == 3
 
     def test_handles_tools_call(self, initialized_server: MCPServer):
         """Should handle tools/call after initialization."""

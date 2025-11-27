@@ -125,9 +125,13 @@ class TestServerWithWebSearch:
         result = json.loads(response)
         assert "result" in result
         tools = result["result"]["tools"]
-        assert len(tools) == 1
-        assert tools[0]["name"] == "web_search"
-        assert "query" in tools[0]["inputSchema"]["properties"]
+        # 2 discovery tools auto-registered + 1 websearch tool
+        assert len(tools) == 3
+        tool_names = {t["name"] for t in tools}
+        assert "web_search" in tool_names
+        # Verify web_search has correct schema
+        web_search = next(t for t in tools if t["name"] == "web_search")
+        assert "query" in web_search["inputSchema"]["properties"]
 
     @patch("src.plugins.websearch.httpx")
     def test_tools_call_websearch(self, mock_httpx, initialized_server: MCPServer):
@@ -215,7 +219,8 @@ class TestFullMessageFlow:
         )
         list_result = json.loads(list_response)
         assert list_result["id"] == 2
-        assert len(list_result["result"]["tools"]) == 1
+        # 2 discovery tools auto-registered + 1 websearch tool
+        assert len(list_result["result"]["tools"]) == 3
 
         # Step 4: Call a tool (mocked)
         with patch("src.plugins.websearch.httpx") as mock_httpx:

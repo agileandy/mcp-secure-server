@@ -76,6 +76,7 @@ mcp-server/
 │   │   ├── base.py            # Plugin base class
 │   │   ├── loader.py          # Plugin discovery
 │   │   ├── dispatcher.py      # Tool call routing
+│   │   ├── discovery.py       # Built-in: Progressive disclosure tools
 │   │   ├── websearch.py       # Example: DuckDuckGo search plugin
 │   │   └── bugtracker.py      # Example: Bug tracking plugin
 │   └── security/
@@ -84,7 +85,7 @@ mcp-server/
 │       ├── validator.py       # Input validation
 │       ├── engine.py          # Integrated security engine
 │       └── audit.py           # Audit logging
-└── tests/                     # Test suite (327 tests, 95%+ coverage)
+└── tests/                     # Test suite (343 tests, 96%+ coverage)
 ```
 
 ## Security Policy
@@ -153,6 +154,95 @@ tools:
 audit:
   log_file: "${HOME}/.mcp-secure/audit.log"
   log_level: "INFO"
+```
+
+## Built-in Tools
+
+The server automatically registers discovery tools for progressive disclosure, enabling agents to efficiently find and load only the tools they need.
+
+### search_tools
+
+Search for available tools by keyword or category. Use `detail_level` to control context usage.
+
+**Input Schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Keyword to search in tool names and descriptions"
+    },
+    "category": {
+      "type": "string",
+      "description": "Filter by plugin category (e.g., 'bugtracker')"
+    },
+    "detail_level": {
+      "type": "string",
+      "enum": ["name", "summary", "full"],
+      "description": "Level of detail: 'name' (just names), 'summary' (names + descriptions), 'full' (complete schemas)"
+    }
+  }
+}
+```
+
+**Example - Find bug-related tools with minimal context:**
+```json
+{
+  "name": "search_tools",
+  "arguments": {
+    "query": "bug",
+    "detail_level": "name"
+  }
+}
+// Returns: ["add_bug", "get_bug", "update_bug", "close_bug", "list_bugs", "search_bugs_global"]
+```
+
+**Example - Get full schema for a specific category:**
+```json
+{
+  "name": "search_tools",
+  "arguments": {
+    "category": "websearch",
+    "detail_level": "full"
+  }
+}
+```
+
+### list_categories
+
+List all available tool categories (plugins) with tool counts. Use this to discover capabilities before searching.
+
+**Input Schema:**
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+**Example Response:**
+```json
+[
+  {
+    "category": "discovery",
+    "version": "1.0.0",
+    "tool_count": 2,
+    "tools": ["search_tools", "list_categories"]
+  },
+  {
+    "category": "websearch",
+    "version": "1.0.0",
+    "tool_count": 1,
+    "tools": ["web_search"]
+  },
+  {
+    "category": "bugtracker",
+    "version": "1.0.0",
+    "tool_count": 7,
+    "tools": ["init_bugtracker", "add_bug", "get_bug", "update_bug", "close_bug", "list_bugs", "search_bugs_global"]
+  }
+]
 ```
 
 ## Example Plugins

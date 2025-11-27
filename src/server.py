@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from src.plugins.base import PluginBase
+from src.plugins.discovery import ToolDiscoveryPlugin
 from src.plugins.dispatcher import ToolDispatcher
 from src.protocol.jsonrpc import (
     INTERNAL_ERROR,
@@ -59,6 +60,9 @@ class MCPServer:
         self._dispatcher = ToolDispatcher()
         self._tools_handler = ToolsHandler(self._dispatcher)
         self._security_engine = SecurityEngine(self._policy)
+
+        # Auto-register discovery plugin (provides search_tools, list_categories)
+        self._dispatcher.register_plugin(ToolDiscoveryPlugin(self._dispatcher))
 
     def register_plugin(self, plugin: PluginBase) -> None:
         """Register a plugin.
