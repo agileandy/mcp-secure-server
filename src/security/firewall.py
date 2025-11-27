@@ -149,51 +149,87 @@ class NetworkFirewall:
         Raises:
             SecurityError: If access is blocked by policy.
         """
-        # Check if port is blocked
         if self._policy.is_port_blocked(port):
             raise SecurityError(f"Access denied: port {port} is blocked by policy")
 
-        # Try to parse as IP address first
+        # Try to validate as IP address first
+        if self._validate_ip_address(host, port):
+            return True
+
+        # Not an IP address, validate as hostname
+        return self._validate_hostname(host, port)
+
+    def _validate_ip_address(self, host: str, port: int) -> bool:
+        """Validate a raw IP address.
+
+        Args:
+            host: Potential IP address string.
+            port: Port number.
+
+        Returns:
+            True if valid IP in allowed ranges, False if not an IP address.
+
+        Raises:
+            SecurityError: If IP is not in allowed ranges.
+        """
         try:
             ip = ipaddress.ip_address(host)
             ip_str = str(ip)
 
-            # Check if it's a private/local address
             if self._is_ip_in_allowed_ranges(ip_str):
                 return True
 
-            # Not in allowed ranges, check external endpoint allowlist
-            # (shouldn't happen for IPs, but check anyway)
             raise SecurityError(f"Access denied: address {host}:{port} is not allowed")
 
         except ValueError:
-            # Not an IP address, it's a hostname
-            pass
+            # Not an IP address
+            return False
 
-        # Handle special hostnames
+    def _validate_hostname(self, host: str, port: int) -> bool:
+        """Validate a hostname for network access.
+
+        Args:
+            host: Hostname to validate.
+            port: Port number.
+
+        Returns:
+            True if access is allowed.
+
+        Raises:
+            SecurityError: If access is blocked by policy.
+        """
         if host == "localhost":
             return True
 
         # Check if hostname is in external endpoint allowlist
         if self._policy.is_endpoint_allowed(host, port):
-            # Resolve to verify, but allow the connection
-            self._resolve_hostname(host)
+            self._resolve_hostname(host)  # Resolve to verify
             return True
 
-        # Not in allowlist, block DNS resolution attempt
-        if not self._policy.allow_dns:
-            raise SecurityError(f"DNS resolution disabled by policy for: {host}")
+        # Enforce DNS policy for non-allowlisted hosts
+        self._enforce_dns_policy(host)
 
-        if not self._policy.is_dns_allowed(host):
-            raise SecurityError(f"DNS resolution not allowed for: {host}")
-
-        # Hostname is in DNS allowlist but not in endpoint allowlist
-        # Resolve and check if it's a private address
+        # Hostname is in DNS allowlist - resolve and check if private
         ip_str = self._resolve_hostname(host)
         if self._is_ip_in_allowed_ranges(ip_str):
             return True
 
         raise SecurityError(f"Access denied: {host}:{port} is not allowed")
+
+    def _enforce_dns_policy(self, host: str) -> None:
+        """Check if DNS resolution is allowed for a hostname.
+
+        Args:
+            host: Hostname to check.
+
+        Raises:
+            SecurityError: If DNS resolution is not allowed.
+        """
+        if not self._policy.allow_dns:
+            raise SecurityError(f"DNS resolution disabled by policy for: {host}")
+
+        if not self._policy.is_dns_allowed(host):
+            raise SecurityError(f"DNS resolution not allowed for: {host}")
 
     def validate_url(self, url: str) -> bool:
         """Validate that a URL is allowed by policy.
