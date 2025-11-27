@@ -20,7 +20,41 @@ if TYPE_CHECKING:
 from src.plugins.base import PluginBase, ToolDefinition, ToolResult
 
 # =============================================================================
-# Project Index (for cross-project search)
+# Global Database Helpers
+# =============================================================================
+
+
+def get_global_db_path() -> Path:
+    """Get path to the global bug tracker database.
+
+    Returns:
+        Path to ~/.mcp-bugtracker/bugs.db
+    """
+    home = Path(os.environ.get("HOME", os.path.expanduser("~")))
+    return home / ".mcp-bugtracker" / "bugs.db"
+
+
+def compute_project_id(project_path: str) -> str:
+    """Compute a stable project ID from a path.
+
+    Format: basename-hash8 (e.g., "my-project-a1b2c3d4")
+
+    Args:
+        project_path: Absolute path to the project directory.
+
+    Returns:
+        Project ID string.
+    """
+    import hashlib
+
+    resolved = Path(project_path).resolve()
+    name = resolved.name
+    hash_suffix = hashlib.sha256(str(resolved).encode()).hexdigest()[:8]
+    return f"{name}-{hash_suffix}"
+
+
+# =============================================================================
+# Project Index (for cross-project search) - DEPRECATED
 # =============================================================================
 
 
@@ -141,6 +175,8 @@ class Bug:
     """Represents a bug with full history tracking."""
 
     id: str
+    project_id: str  # Computed from project_path (basename-hash8)
+    project_path: str  # Original absolute path for display
     title: str
     description: str | None
     status: Literal["open", "in_progress", "closed"]
@@ -154,6 +190,8 @@ class Bug:
         """Serialize to dictionary."""
         return {
             "id": self.id,
+            "project_id": self.project_id,
+            "project_path": self.project_path,
             "title": self.title,
             "description": self.description,
             "status": self.status,
@@ -169,6 +207,8 @@ class Bug:
         """Deserialize from dictionary."""
         return cls(
             id=data["id"],
+            project_id=data["project_id"],
+            project_path=data["project_path"],
             title=data["title"],
             description=data.get("description"),
             status=data["status"],
@@ -188,34 +228,41 @@ class Bug:
 class BugStore:
     """SQLite-based storage for bugs.
 
-    Each project has its own database file in .bugtracker/bugs.db.
+    Single global database with project_id for isolation.
     Uses WAL mode for better concurrency.
     """
 
-    def __init__(self, db_path: Path) -> None:
+    def __init__(self, db_path: Path | None = None) -> None:
         """Initialize the store.
 
         Args:
-            db_path: Path to the SQLite database file.
+            db_path: Path to the SQLite database file. Defaults to global path.
         """
-        self._db_path = db_path
+        self._db_path = db_path or get_global_db_path()
         self._conn: sqlite3.Connection | None = None
 
     def _get_connection(self) -> sqlite3.Connection:
         """Get or create a database connection."""
         if self._conn is None:
+            # Ensure parent directory exists
+            self._db_path.parent.mkdir(parents=True, exist_ok=True)
             self._conn = sqlite3.connect(self._db_path)
             self._conn.row_factory = sqlite3.Row
             # Enable WAL mode for better concurrency
             self._conn.execute("PRAGMA journal_mode=WAL;")
+            # Auto-initialize schema
+            self._initialize_schema()
         return self._conn
 
-    def initialize(self) -> None:
+    def _initialize_schema(self) -> None:
         """Create the database schema if it doesn't exist."""
-        conn = self._get_connection()
-        conn.execute("""
+        if self._conn is None:
+            return
+        self._conn.execute("""
             CREATE TABLE IF NOT EXISTS bugs (
                 id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                project_path TEXT NOT NULL,
                 title TEXT NOT NULL,
                 description TEXT,
                 status TEXT NOT NULL,
@@ -227,10 +274,17 @@ class BugStore:
             )
         """)
         # Create indexes for common queries
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_bugs_status ON bugs(status)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_bugs_priority ON bugs(priority)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_bugs_created_at ON bugs(created_at)")
-        conn.commit()
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_bugs_project ON bugs(project_id)")
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_bugs_status ON bugs(project_id, status)")
+        self._conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_bugs_priority ON bugs(project_id, priority)"
+        )
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_bugs_created_at ON bugs(created_at)")
+        self._conn.commit()
+
+    def initialize(self) -> None:
+        """Ensure database is initialized (for backwards compatibility)."""
+        self._get_connection()
 
     def close(self) -> None:
         """Close the database connection."""
@@ -247,12 +301,14 @@ class BugStore:
         conn = self._get_connection()
         conn.execute(
             """
-            INSERT INTO bugs (id, title, description, status, priority, tags,
-                            related_bugs, created_at, history)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO bugs (id, project_id, project_path, title, description,
+                            status, priority, tags, related_bugs, created_at, history)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 bug.id,
+                bug.project_id,
+                bug.project_path,
                 bug.title,
                 bug.description,
                 bug.status,
@@ -265,17 +321,23 @@ class BugStore:
         )
         conn.commit()
 
-    def get_bug(self, bug_id: str) -> Bug | None:
+    def get_bug(self, bug_id: str, project_id: str | None = None) -> Bug | None:
         """Retrieve a bug by ID.
 
         Args:
             bug_id: The bug ID to look up.
+            project_id: Optional project filter.
 
         Returns:
             The bug if found, None otherwise.
         """
         conn = self._get_connection()
-        cursor = conn.execute("SELECT * FROM bugs WHERE id = ?", (bug_id,))
+        if project_id:
+            cursor = conn.execute(
+                "SELECT * FROM bugs WHERE id = ? AND project_id = ?", (bug_id, project_id)
+            )
+        else:
+            cursor = conn.execute("SELECT * FROM bugs WHERE id = ?", (bug_id,))
         row = cursor.fetchone()
 
         if row is None:
@@ -317,6 +379,7 @@ class BugStore:
 
     def list_bugs(
         self,
+        project_id: str | None = None,
         status: str | None = None,
         priority: str | None = None,
         tags: list[str] | None = None,
@@ -324,6 +387,7 @@ class BugStore:
         """List bugs with optional filtering.
 
         Args:
+            project_id: Filter by project (required for project-scoped queries).
             status: Filter by status (open, in_progress, closed).
             priority: Filter by priority (low, medium, high, critical).
             tags: Filter by tags (bug must have all specified tags).
@@ -334,6 +398,10 @@ class BugStore:
         conn = self._get_connection()
         query = "SELECT * FROM bugs WHERE 1=1"
         params: list[Any] = []
+
+        if project_id is not None:
+            query += " AND project_id = ?"
+            params.append(project_id)
 
         if status is not None:
             query += " AND status = ?"
@@ -359,6 +427,8 @@ class BugStore:
         """Convert a database row to a Bug object."""
         return Bug(
             id=row["id"],
+            project_id=row["project_id"],
+            project_path=row["project_path"],
             title=row["title"],
             description=row["description"],
             status=row["status"],
@@ -581,18 +651,31 @@ class BugTrackerPlugin(PluginBase):
     """Bug tracker plugin.
 
     Provides tools for tracking bugs across projects with:
-    - Per-project SQLite storage (.bugtracker/bugs.db)
-    - Cross-project search via central index
+    - Single global SQLite database (~/.mcp-bugtracker/bugs.db)
+    - Project isolation via project_id (computed from path)
     - Full history tracking for all changes
 
-    Attributes:
-        allowed_root: Optional root directory for path validation.
-                      If None, uses current working directory.
-                      Set to "/" or similar to allow any path (for testing).
+    Project path resolution:
+    1. Explicit project_path argument (must be absolute)
+    2. MCP_PROJECT_PATH environment variable
+    3. Error if neither provided
     """
 
-    # Path validation root - can be overridden for testing
-    allowed_root: Path | None = None
+    def __init__(self) -> None:
+        """Initialize the plugin."""
+        self._store: BugStore | None = None
+
+    def _get_store(self) -> BugStore:
+        """Get or create the global bug store."""
+        if self._store is None:
+            self._store = BugStore()
+        return self._store
+
+    def cleanup(self) -> None:
+        """Clean up resources."""
+        if self._store is not None:
+            self._store.close()
+            self._store = None
 
     @property
     def name(self) -> str:
@@ -612,56 +695,59 @@ class BugTrackerPlugin(PluginBase):
         """
         return _TOOL_DEFINITIONS
 
-    def _validate_project_path(
+    def _resolve_project_path(
         self, arguments: dict[str, Any]
-    ) -> tuple[Path | None, ToolResult | None]:
-        """Validate and resolve project path, preventing path traversal attacks.
+    ) -> tuple[str, str, ToolResult | None]:
+        """Resolve project path and compute project ID.
+
+        Resolution order:
+        1. Explicit project_path argument
+        2. MCP_PROJECT_PATH environment variable
+        3. Error
 
         Args:
             arguments: Tool arguments containing optional project_path.
 
         Returns:
-            Tuple of (resolved_path, None) on success, or (None, error_result) on failure.
+            Tuple of (project_id, project_path, None) on success,
+            or ("", "", error_result) on failure.
         """
-        import os
+        # Try argument first, then env var
+        project_path_str = arguments.get("project_path") or os.environ.get("MCP_PROJECT_PATH")
 
-        project_path_str = arguments.get("project_path", os.getcwd())
-        project_path = Path(project_path_str)
+        if not project_path_str:
+            return (
+                "",
+                "",
+                ToolResult(
+                    content=[
+                        {
+                            "type": "text",
+                            "text": "project_path required (or set MCP_PROJECT_PATH env var)",
+                        }
+                    ],
+                    is_error=True,
+                ),
+            )
 
         # Resolve to absolute path
         try:
-            resolved_path = project_path.resolve()
+            resolved = Path(project_path_str).resolve()
+            project_path = str(resolved)
         except (OSError, ValueError) as e:
-            return None, ToolResult(
-                content=[{"type": "text", "text": f"Invalid path: {e}"}],
-                is_error=True,
+            return (
+                "",
+                "",
+                ToolResult(
+                    content=[{"type": "text", "text": f"Invalid path: {e}"}],
+                    is_error=True,
+                ),
             )
 
-        # Get allowed root (class attribute or current working directory)
-        allowed_root = (
-            self.allowed_root.resolve()
-            if self.allowed_root is not None
-            else Path(os.getcwd()).resolve()
-        )
+        # Compute project ID
+        project_id = compute_project_id(project_path)
 
-        # Check if resolved path is within allowed root
-        try:
-            resolved_path.relative_to(allowed_root)
-        except ValueError:
-            return None, ToolResult(
-                content=[
-                    {
-                        "type": "text",
-                        "text": (
-                            f"Path traversal denied: {project_path_str} "
-                            "is outside allowed directory"
-                        ),
-                    }
-                ],
-                is_error=True,
-            )
-
-        return resolved_path, None
+        return project_id, project_path, None
 
     def _get_handler_registry(self) -> dict[str, Callable[[dict[str, Any]], ToolResult]]:
         """Return mapping of tool names to handler methods.
@@ -701,33 +787,30 @@ class BugTrackerPlugin(PluginBase):
         return handler(arguments)
 
     def _init_bugtracker(self, arguments: dict[str, Any]) -> ToolResult:
-        """Initialize bug tracker for a project.
+        """Initialize/verify bug tracker for a project.
+
+        With global DB, this just validates the path and returns the project_id.
+        The database is auto-created on first use.
 
         Args:
-            arguments: Tool arguments containing optional project_path.
+            arguments: Tool arguments containing project_path.
 
         Returns:
-            ToolResult indicating success or failure.
+            ToolResult with project_id or error.
         """
-        # Validate path (security check for path traversal)
-        project_path, error = self._validate_project_path(arguments)
+        project_id, project_path, error = self._resolve_project_path(arguments)
         if error:
             return error
 
-        if project_path is None:
-            return ToolResult(
-                content=[{"type": "text", "text": "Internal error: path validation failed"}],
-                is_error=True,
-            )
-
         # Validate path exists
-        if not project_path.exists():
+        path = Path(project_path)
+        if not path.exists():
             return ToolResult(
                 content=[{"type": "text", "text": f"Project path does not exist: {project_path}"}],
                 is_error=True,
             )
 
-        if not project_path.is_dir():
+        if not path.is_dir():
             return ToolResult(
                 content=[
                     {"type": "text", "text": f"Project path is not a directory: {project_path}"}
@@ -735,66 +818,26 @@ class BugTrackerPlugin(PluginBase):
                 is_error=True,
             )
 
-        # Check if already initialized
-        bugtracker_dir = project_path / ".bugtracker"
-        if bugtracker_dir.exists():
-            return ToolResult(
-                content=[
-                    {"type": "text", "text": f"Bug tracker already initialized at {project_path}"}
-                ],
-                is_error=True,
-            )
-
-        # Create .bugtracker directory
-        bugtracker_dir.mkdir(parents=True)
-
-        # Initialize database
-        db_path = bugtracker_dir / "bugs.db"
-        store = BugStore(db_path)
-        store.initialize()
-        store.close()
-
-        # Register project in central index for cross-project search
-        _register_project_in_index(str(project_path.resolve()))
+        # Ensure store is initialized (creates DB if needed)
+        self._get_store()
 
         return ToolResult(
-            content=[{"type": "text", "text": f"Bug tracker initialized at {project_path}"}],
+            content=[
+                {
+                    "type": "text",
+                    "text": json.dumps(
+                        {
+                            "status": "ready",
+                            "project_id": project_id,
+                            "project_path": project_path,
+                            "database": str(get_global_db_path()),
+                        },
+                        indent=2,
+                    ),
+                }
+            ],
             is_error=False,
         )
-
-    def _get_store(self, arguments: dict[str, Any]) -> tuple[BugStore | None, ToolResult | None]:
-        """Get a BugStore for the project, or return an error result.
-
-        Args:
-            arguments: Tool arguments containing optional project_path.
-
-        Returns:
-            Tuple of (store, None) on success, or (None, error_result) on failure.
-        """
-        # Validate path (security check for path traversal)
-        project_path, error = self._validate_project_path(arguments)
-        if error:
-            return None, error
-
-        if project_path is None:
-            return None, ToolResult(
-                content=[{"type": "text", "text": "Internal error: path validation failed"}],
-                is_error=True,
-            )
-
-        bugtracker_dir = project_path / ".bugtracker"
-
-        if not bugtracker_dir.exists():
-            return None, ToolResult(
-                content=[
-                    {"type": "text", "text": f"Bug tracker not initialized at {project_path}"}
-                ],
-                is_error=True,
-            )
-
-        db_path = bugtracker_dir / "bugs.db"
-        store = BugStore(db_path)
-        return store, None
 
     def _add_bug(self, arguments: dict[str, Any]) -> ToolResult:
         """Add a new bug.
@@ -808,6 +851,11 @@ class BugTrackerPlugin(PluginBase):
         import uuid
         from datetime import datetime
 
+        # Resolve project
+        project_id, project_path, error = self._resolve_project_path(arguments)
+        if error:
+            return error
+
         # Validate title
         title = arguments.get("title", "").strip()
         if not title:
@@ -816,21 +864,12 @@ class BugTrackerPlugin(PluginBase):
                 is_error=True,
             )
 
-        # Get store
-        store, error = self._get_store(arguments)
-        if error:
-            return error
-
-        if store is None:
-            return ToolResult(
-                content=[{"type": "text", "text": "Internal error: store initialization failed"}],
-                is_error=True,
-            )
-
         # Create bug
         bug_id = f"bug-{uuid.uuid4().hex[:8]}"
         bug = Bug(
             id=bug_id,
+            project_id=project_id,
+            project_path=project_path,
             title=title,
             description=arguments.get("description"),
             status="open",
@@ -841,8 +880,8 @@ class BugTrackerPlugin(PluginBase):
             history=[],
         )
 
+        store = self._get_store()
         store.add_bug(bug)
-        store.close()
 
         return ToolResult(
             content=[{"type": "text", "text": f"Created bug: {bug_id}"}],
@@ -866,20 +905,16 @@ class BugTrackerPlugin(PluginBase):
                 is_error=True,
             )
 
-        # Get store
-        store, error = self._get_store(arguments)
-        if error:
-            return error
-
-        if store is None:
-            return ToolResult(
-                content=[{"type": "text", "text": "Internal error: store initialization failed"}],
-                is_error=True,
-            )
+        # Optionally scope to project
+        project_id = None
+        if "project_path" in arguments or os.environ.get("MCP_PROJECT_PATH"):
+            project_id, _, error = self._resolve_project_path(arguments)
+            if error:
+                return error
 
         # Get bug
-        bug = store.get_bug(bug_id)
-        store.close()
+        store = self._get_store()
+        bug = store.get_bug(bug_id, project_id)
 
         if bug is None:
             return ToolResult(
@@ -973,21 +1008,17 @@ class BugTrackerPlugin(PluginBase):
                 is_error=True,
             )
 
-        # Get store
-        store, error = self._get_store(arguments)
-        if error:
-            return error
-
-        if store is None:
-            return ToolResult(
-                content=[{"type": "text", "text": "Internal error: store initialization failed"}],
-                is_error=True,
-            )
+        # Optionally scope to project
+        project_id = None
+        if "project_path" in arguments or os.environ.get("MCP_PROJECT_PATH"):
+            project_id, _, error = self._resolve_project_path(arguments)
+            if error:
+                return error
 
         # Get existing bug
-        bug = store.get_bug(bug_id)
+        store = self._get_store()
+        bug = store.get_bug(bug_id, project_id)
         if bug is None:
-            store.close()
             return ToolResult(
                 content=[{"type": "text", "text": f"Bug not found: {bug_id}"}],
                 is_error=True,
@@ -1008,7 +1039,6 @@ class BugTrackerPlugin(PluginBase):
 
         # Save changes
         store.update_bug(bug)
-        store.close()
 
         return ToolResult(
             content=[{"type": "text", "text": f"Updated bug: {bug_id}"}],
@@ -1057,24 +1087,19 @@ class BugTrackerPlugin(PluginBase):
         Returns:
             ToolResult with JSON array of bugs.
         """
-        # Get store
-        store, error = self._get_store(arguments)
+        # Resolve project (required for list)
+        project_id, _, error = self._resolve_project_path(arguments)
         if error:
             return error
 
-        if store is None:
-            return ToolResult(
-                content=[{"type": "text", "text": "Internal error: store initialization failed"}],
-                is_error=True,
-            )
-
         # Get filtered bugs
+        store = self._get_store()
         bugs = store.list_bugs(
+            project_id=project_id,
             status=arguments.get("status"),
             priority=arguments.get("priority"),
             tags=arguments.get("tags"),
         )
-        store.close()
 
         # Serialize to JSON
         bugs_data = [bug.to_dict() for bug in bugs]
@@ -1084,7 +1109,9 @@ class BugTrackerPlugin(PluginBase):
         )
 
     def _search_bugs_global(self, arguments: dict[str, Any]) -> ToolResult:
-        """Search bugs across all indexed projects.
+        """Search bugs across all projects.
+
+        With global DB, this is just a list without project filter.
 
         Args:
             arguments: Tool arguments with optional status, priority, tags filters.
@@ -1092,35 +1119,17 @@ class BugTrackerPlugin(PluginBase):
         Returns:
             ToolResult with JSON array of bugs from all projects.
         """
-        all_bugs: list[dict[str, Any]] = []
+        store = self._get_store()
+        bugs = store.list_bugs(
+            project_id=None,  # No project filter = global search
+            status=arguments.get("status"),
+            priority=arguments.get("priority"),
+            tags=arguments.get("tags"),
+        )
 
-        # Get all indexed projects
-        project_paths = get_indexed_projects()
-
-        for project_path in project_paths:
-            # Check if project still has a valid bug tracker
-            bugtracker_dir = Path(project_path) / ".bugtracker"
-            if not bugtracker_dir.exists():
-                continue
-
-            db_path = bugtracker_dir / "bugs.db"
-            store = BugStore(db_path)
-
-            # Get filtered bugs from this project
-            bugs = store.list_bugs(
-                status=arguments.get("status"),
-                priority=arguments.get("priority"),
-                tags=arguments.get("tags"),
-            )
-            store.close()
-
-            # Add project_path to each bug
-            for bug in bugs:
-                bug_data = bug.to_dict()
-                bug_data["project_path"] = project_path
-                all_bugs.append(bug_data)
-
+        # Serialize to JSON
+        bugs_data = [bug.to_dict() for bug in bugs]
         return ToolResult(
-            content=[{"type": "text", "text": json.dumps(all_bugs, indent=2)}],
+            content=[{"type": "text", "text": json.dumps(bugs_data, indent=2)}],
             is_error=False,
         )

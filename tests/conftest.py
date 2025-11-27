@@ -5,28 +5,28 @@ from pathlib import Path
 import pytest
 
 
-@pytest.fixture(autouse=True)
-def allow_tmp_path_for_bugtracker(tmp_path: Path, request):
-    """Automatically allow tmp_path for BugTrackerPlugin in most tests.
+@pytest.fixture
+def global_db_path(tmp_path: Path, monkeypatch):
+    """Set up a temporary global database for tests.
 
-    This fixture sets the allowed_root to "/" to disable path traversal
-    checks for tests that don't specifically test path validation.
-
-    Tests in TestPathTraversalProtection are excluded from this fixture
-    so they can test the actual path validation behavior.
+    This redirects the global database to a temp directory
+    so tests don't pollute the real ~/.mcp-bugtracker/ location.
     """
-    # Skip for path traversal tests - they need real path validation
-    if "TestPathTraversalProtection" in str(request.node.nodeid):
-        yield
-        return
+    test_home = tmp_path / "home"
+    test_home.mkdir()
+    monkeypatch.setenv("HOME", str(test_home))
 
-    # For all other tests, allow any path (disable path traversal check)
-    from src.plugins.bugtracker import BugTrackerPlugin
+    yield test_home / ".mcp-bugtracker" / "bugs.db"
 
-    original_root = BugTrackerPlugin.allowed_root
-    BugTrackerPlugin.allowed_root = Path("/")
 
-    yield
+@pytest.fixture
+def project_path(tmp_path: Path, monkeypatch):
+    """Create a temporary project directory and set it as MCP_PROJECT_PATH.
 
-    # Restore original setting
-    BugTrackerPlugin.allowed_root = original_root
+    Returns the project path for use in tests.
+    """
+    project = tmp_path / "test-project"
+    project.mkdir()
+    monkeypatch.setenv("MCP_PROJECT_PATH", str(project))
+
+    yield project
