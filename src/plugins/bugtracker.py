@@ -84,8 +84,11 @@ def get_indexed_projects() -> list[str]:
     return index.get("projects", [])
 
 
-def _register_project_in_index(project_path: str) -> None:
+def _register_project_in_index(project_path: str) -> None:  # pragma: no cover
     """Register a project in the central index.
+
+    DEPRECATED: This function is no longer called since the migration to
+    a centralized SQLite database. Kept for backward compatibility.
 
     Args:
         project_path: Absolute path to the project directory.

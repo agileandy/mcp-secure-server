@@ -1501,13 +1501,23 @@ class TestProjectIndex:
 
     def test_deprecated_index_functions_still_work(self, tmp_path, monkeypatch):
         """The deprecated get_indexed_projects function still works."""
-        from src.plugins.bugtracker import get_indexed_projects
+        import json
+
+        from src.plugins.bugtracker import get_indexed_projects, get_project_index_path
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
         # With no index file, returns empty list
         projects = get_indexed_projects()
         assert projects == []
+
+        # With index file containing projects, returns the list
+        index_path = get_project_index_path()
+        index_path.parent.mkdir(parents=True, exist_ok=True)
+        index_path.write_text(json.dumps({"projects": ["/path/to/project1", "/path/to/project2"]}))
+
+        projects = get_indexed_projects()
+        assert projects == ["/path/to/project1", "/path/to/project2"]
 
 
 class TestSearchBugsGlobal:

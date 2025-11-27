@@ -260,13 +260,13 @@ class PluginBase(ABC):
     @abstractmethod
     def name(self) -> str:
         """Return the plugin identifier."""
-        pass
+        pass  # pragma: no cover
 
     @property
     @abstractmethod
     def version(self) -> str:
         """Return the plugin version."""
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def get_tools(self) -> list[ToolDefinition]:
@@ -275,7 +275,7 @@ class PluginBase(ABC):
         Returns:
             List of ToolDefinition objects.
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def execute(self, tool_name: str, arguments: dict[str, Any]) -> ToolResult:
@@ -288,7 +288,7 @@ class PluginBase(ABC):
         Returns:
             ToolResult with content and error status.
         """
-        pass
+        pass  # pragma: no cover
 
     def cleanup(self) -> None:  # noqa: B027
         """Clean up plugin resources.

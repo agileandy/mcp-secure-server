@@ -72,14 +72,15 @@ mcp-server/
 │   │   ├── base.py            # Plugin base class
 │   │   ├── loader.py          # Plugin discovery
 │   │   ├── dispatcher.py      # Tool call routing
-│   │   └── websearch.py       # DuckDuckGo search plugin
+│   │   ├── websearch.py       # DuckDuckGo search plugin
+│   │   └── bugtracker.py      # Bug tracking plugin
 │   └── security/
 │       ├── policy.py          # Policy loader
 │       ├── firewall.py        # Network access control
 │       ├── validator.py       # Input validation
 │       ├── engine.py          # Integrated security engine
 │       └── audit.py           # Audit logging
-└── tests/                     # Test suite (193 tests, 95%+ coverage)
+└── tests/                     # Test suite (327 tests, 95%+ coverage)
 ```
 
 ## Security Policy
@@ -181,6 +182,239 @@ Search the web using DuckDuckGo.
   "arguments": {
     "query": "Python asyncio tutorial",
     "max_results": 3
+  }
+}
+```
+
+### Bug Tracker
+
+A local bug tracking system with a centralized SQLite database. Supports multiple projects, bug relationships, and global search.
+
+#### init_bugtracker
+
+Initialize bug tracking for a project.
+
+**Input Schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "project_path": {
+      "type": "string",
+      "description": "Path to project directory (defaults to cwd)"
+    }
+  }
+}
+```
+
+#### add_bug
+
+Add a new bug to the tracker.
+
+**Input Schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Brief title for the bug"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Bug priority (default: medium)"
+    },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Tags for categorization"
+    },
+    "project_path": {
+      "type": "string",
+      "description": "Path to project directory (defaults to cwd)"
+    }
+  },
+  "required": ["title"]
+}
+```
+
+#### get_bug
+
+Retrieve a bug by ID.
+
+**Input Schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "bug_id": {
+      "type": "string",
+      "description": "The bug ID to retrieve"
+    },
+    "project_path": {
+      "type": "string",
+      "description": "Path to project directory (defaults to cwd)"
+    }
+  },
+  "required": ["bug_id"]
+}
+```
+
+#### update_bug
+
+Update an existing bug's status, priority, tags, or related bugs. Supports note-only updates for progress tracking.
+
+**Input Schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "bug_id": {
+      "type": "string",
+      "description": "The bug ID to update"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["open", "in_progress", "closed"]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "New tags (replaces existing)"
+    },
+    "related_bugs": {
+      "type": "array",
+      "description": "Related bugs with relationship type"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note for the history entry"
+    },
+    "project_path": {
+      "type": "string"
+    }
+  },
+  "required": ["bug_id"]
+}
+```
+
+#### close_bug
+
+Close a bug with a resolution note.
+
+**Input Schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "bug_id": {
+      "type": "string",
+      "description": "The bug ID to close"
+    },
+    "resolution": {
+      "type": "string",
+      "description": "Resolution note explaining how the bug was fixed"
+    },
+    "project_path": {
+      "type": "string"
+    }
+  },
+  "required": ["bug_id"]
+}
+```
+
+#### list_bugs
+
+List bugs with optional filtering.
+
+**Input Schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["open", "in_progress", "closed"]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Filter by tags (must have ALL specified tags)"
+    },
+    "project_path": {
+      "type": "string"
+    }
+  }
+}
+```
+
+#### search_bugs_global
+
+Search bugs across all indexed projects.
+
+**Input Schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["open", "in_progress", "closed"]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}
+```
+
+**Example - Create and track a bug:**
+```json
+// Add a bug
+{
+  "name": "add_bug",
+  "arguments": {
+    "title": "Login button not responding",
+    "description": "The login button on the home page doesn't trigger the auth flow",
+    "priority": "high",
+    "tags": ["ui", "auth"]
+  }
+}
+
+// Update with progress
+{
+  "name": "update_bug",
+  "arguments": {
+    "bug_id": "BUG-001",
+    "status": "in_progress",
+    "note": "Identified missing onClick handler"
+  }
+}
+
+// Close with resolution
+{
+  "name": "close_bug",
+  "arguments": {
+    "bug_id": "BUG-001",
+    "resolution": "Added onClick handler to LoginButton component"
   }
 }
 ```
