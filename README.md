@@ -38,9 +38,9 @@ uv run python main.py --policy /path/to/policy.yaml
 uv run python main.py --version
 ```
 
-### Integration with Claude Desktop
+### Integration with MCP Clients
 
-Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+This server works with any MCP-compatible client. Add the following to your client's MCP configuration:
 
 ```json
 {
@@ -53,6 +53,10 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
   }
 }
 ```
+
+**Example client configuration locations:**
+- **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
+- **Other MCP clients**: Refer to your client's documentation for the configuration file location
 
 ## Architecture
 
@@ -72,8 +76,8 @@ mcp-server/
 │   │   ├── base.py            # Plugin base class
 │   │   ├── loader.py          # Plugin discovery
 │   │   ├── dispatcher.py      # Tool call routing
-│   │   ├── websearch.py       # DuckDuckGo search plugin
-│   │   └── bugtracker.py      # Bug tracking plugin
+│   │   ├── websearch.py       # Example: DuckDuckGo search plugin
+│   │   └── bugtracker.py      # Example: Bug tracking plugin
 │   └── security/
 │       ├── policy.py          # Policy loader
 │       ├── firewall.py        # Network access control
@@ -105,7 +109,7 @@ network:
   
   # Blocked ports (even on local network)
   blocked_ports:
-    - 22  # SSH
+    - 22  # SSH  
   
   # DNS settings
   allow_dns: true
@@ -151,11 +155,13 @@ audit:
   log_level: "INFO"
 ```
 
-## Available Tools
+## Example Plugins
 
-### web_search
+The server includes example plugins to demonstrate the plugin architecture. These are provided as reference implementations showing how to build your own plugins for any use case.
 
-Search the web using DuckDuckGo.
+### web_search (Example Plugin)
+
+An example plugin that searches the web using DuckDuckGo. Demonstrates how to build plugins that make external network requests within the security policy.
 
 **Input Schema:**
 ```json
@@ -186,9 +192,9 @@ Search the web using DuckDuckGo.
 }
 ```
 
-### Bug Tracker
+### Bug Tracker (Example Plugin)
 
-A local bug tracking system with a centralized SQLite database. Supports multiple projects, bug relationships, and global search.
+An example plugin implementing a local bug tracking system with a centralized SQLite database. Demonstrates how to build plugins that manage local state, support multiple projects, and perform complex queries.
 
 #### init_bugtracker
 
