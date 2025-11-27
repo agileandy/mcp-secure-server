@@ -153,18 +153,19 @@ class TestLifecycleManager:
         with pytest.raises(ProtocolError, match="not initializing"):
             manager.handle_initialized()
 
-    def test_validates_protocol_version(self):
-        """Should reject unsupported protocol versions."""
+    def test_accepts_any_protocol_version(self):
+        """Should accept any protocol version and echo it back."""
         manager = LifecycleManager()
 
-        with pytest.raises(ProtocolError, match="protocol version"):
-            manager.handle_initialize(
-                {
-                    "protocolVersion": "1999-01-01",
-                    "capabilities": {},
-                    "clientInfo": {"name": "test", "version": "1.0"},
-                }
-            )
+        result = manager.handle_initialize(
+            {
+                "protocolVersion": "1999-01-01",
+                "capabilities": {},
+                "clientInfo": {"name": "test", "version": "1.0"},
+            }
+        )
+
+        assert result["protocolVersion"] == "1999-01-01"
 
     def test_stores_client_info(self):
         """Should store client info from initialize."""

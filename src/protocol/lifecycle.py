@@ -95,13 +95,8 @@ class LifecycleManager:
         if self.state not in (LifecycleState.UNINITIALIZED,):
             raise ProtocolError("Server already initialized")
 
-        # Validate protocol version
-        requested_version = params.get("protocolVersion")
-        if requested_version not in SUPPORTED_PROTOCOL_VERSIONS:
-            raise ProtocolError(
-                f"Unsupported protocol version: {requested_version}. "
-                f"Supported: {', '.join(SUPPORTED_PROTOCOL_VERSIONS)}"
-            )
+        # Accept any protocol version the client sends
+        requested_version = params.get("protocolVersion", "2024-11-05")
 
         # Use the client's requested version for the response
         negotiated_version = requested_version
