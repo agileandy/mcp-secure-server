@@ -6,26 +6,20 @@ firewall, validator, and audit logger into a single engine.
 
 from __future__ import annotations
 
-import time
 import uuid
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
 from src.security.audit import AuditLogger
 from src.security.firewall import NetworkFirewall, SecurityError
 from src.security.policy import SecurityPolicy
+from src.security.ratelimiter import RateLimiter
+from src.security.ratelimiter import RateLimitExceeded as RateLimitExceeded  # Re-export
 from src.security.validator import InputValidator, ValidationError
 
 
 class SecurityViolation(Exception):
     """Raised when a security policy is violated."""
-
-    pass
-
-
-class RateLimitExceeded(Exception):
-    """Raised when rate limit is exceeded."""
 
     pass
 
@@ -54,10 +48,7 @@ class SecurityEngine:
         self._policy = policy
         self._firewall = NetworkFirewall(policy)
         self._validator = InputValidator(policy)
-        self._rate_limit_window = rate_limit_window_seconds
-
-        # Rate limiting state
-        self._rate_limit_buckets: dict[str, list[float]] = defaultdict(list)
+        self._rate_limiter = RateLimiter(window_seconds=rate_limit_window_seconds)
 
         # Initialize audit logger if configured
         if policy.audit_log_file:
@@ -154,30 +145,18 @@ class SecurityEngine:
             RateLimitExceeded: If rate limit is exceeded.
         """
         limit = self._policy.get_rate_limit(tool_name)
-        now = time.time()
-        window_start = now - self._rate_limit_window
-
-        # Clean old entries
-        bucket = self._rate_limit_buckets[tool_name]
-        self._rate_limit_buckets[tool_name] = [t for t in bucket if t > window_start]
-
-        # Check limit
-        if len(self._rate_limit_buckets[tool_name]) >= limit:
+        try:
+            self._rate_limiter.check_rate_limit(tool_name, limit)
+        except RateLimitExceeded:
             self._log_security_event(
                 "rate_limit_exceeded",
                 {
                     "tool": tool_name,
                     "limit": limit,
-                    "window_seconds": self._rate_limit_window,
+                    "window_seconds": self._rate_limiter.window_seconds,
                 },
             )
-            raise RateLimitExceeded(
-                f"Rate limit exceeded for {tool_name}: "
-                f"{limit} requests per {self._rate_limit_window}s"
-            )
-
-        # Record this request
-        self._rate_limit_buckets[tool_name].append(now)
+            raise
 
     def get_timeout(self) -> int:
         """Get configured timeout for tool execution.
