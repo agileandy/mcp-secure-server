@@ -49,6 +49,24 @@ class LifecycleManager:
         """Check if the connection is ready for operations."""
         return self.state == LifecycleState.READY
 
+    @property
+    def connected_client(self) -> dict[str, str] | None:
+        """Get information about the connected client.
+
+        Returns:
+            Client info dict with 'name' and 'version', or None if not initialized.
+        """
+        return self.client_info
+
+    @property
+    def client_caps(self) -> dict[str, Any]:
+        """Get the connected client's capabilities.
+
+        Returns:
+            Client capabilities dict, or empty dict if not initialized.
+        """
+        return self.client_capabilities or {}
+
     def require_ready(self) -> None:
         """Assert that the connection is ready.
 

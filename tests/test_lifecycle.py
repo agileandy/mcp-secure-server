@@ -167,6 +167,36 @@ class TestLifecycleManager:
         assert manager.client_info == {"name": "test-client", "version": "2.0"}
         assert manager.client_capabilities == {"tools": {}}
 
+    def test_connected_client_property(self):
+        """Should expose client info via connected_client property."""
+        manager = LifecycleManager()
+        assert manager.connected_client is None
+
+        manager.handle_initialize(
+            {
+                "protocolVersion": MCP_PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": {"name": "my-client", "version": "3.0"},
+            }
+        )
+
+        assert manager.connected_client == {"name": "my-client", "version": "3.0"}
+
+    def test_client_caps_property(self):
+        """Should expose client capabilities via client_caps property."""
+        manager = LifecycleManager()
+        assert manager.client_caps == {}
+
+        manager.handle_initialize(
+            {
+                "protocolVersion": MCP_PROTOCOL_VERSION,
+                "capabilities": {"tools": {"listChanged": True}},
+                "clientInfo": {"name": "test", "version": "1.0"},
+            }
+        )
+
+        assert manager.client_caps == {"tools": {"listChanged": True}}
+
     def test_returns_server_capabilities(self):
         """Should return server capabilities in initialize response."""
         manager = LifecycleManager(

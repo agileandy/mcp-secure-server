@@ -11,6 +11,8 @@ from typing import Any
 from src.plugins.base import PluginBase
 from src.plugins.dispatcher import ToolDispatcher
 from src.protocol.jsonrpc import (
+    INTERNAL_ERROR,
+    METHOD_NOT_FOUND,
     JsonRpcError,
     JsonRpcNotification,
     JsonRpcRequest,
@@ -21,10 +23,6 @@ from src.protocol.jsonrpc import (
 from src.protocol.lifecycle import LifecycleManager, ProtocolError
 from src.protocol.tools import ToolsHandler
 from src.security.policy import SecurityPolicy, load_policy
-
-# JSON-RPC error codes
-METHOD_NOT_FOUND = -32601
-INTERNAL_ERROR = -32603
 
 
 class MCPServer:
