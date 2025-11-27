@@ -47,7 +47,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]
+"tests/*" = ["S101", "S105", "S106"]  # Allow assert and test password strings
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
