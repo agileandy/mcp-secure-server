@@ -79,6 +79,10 @@ class PluginLoader:
 
         return self._plugins
 
+    # @todo: Mild SRP concern - this method handles both manifest loading and
+    # dynamic module import. Consider extracting _import_plugin_module() if
+    # manifest validation logic grows. Not urgent - method is ~40 lines and
+    # easy to follow. (2024-11-27)
     def _load_plugin(
         self, plugin_dir: Path, manifest_path: Path, handler_path: Path
     ) -> PluginBase | None:
