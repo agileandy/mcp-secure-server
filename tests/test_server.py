@@ -79,7 +79,7 @@ def initialized_server(server: MCPServer) -> MCPServer:
             "id": 1,
             "method": "initialize",
             "params": {
-                "protocolVersion": "2025-11-25",
+                "protocolVersion": "2024-11-05",
                 "clientInfo": {"name": "test", "version": "1.0"},
                 "capabilities": {},
             },
@@ -119,7 +119,7 @@ class TestMCPServer:
             "id": 1,
             "method": "initialize",
             "params": {
-                "protocolVersion": "2025-11-25",
+                "protocolVersion": "2024-11-05",
                 "clientInfo": {"name": "test", "version": "1.0"},
                 "capabilities": {},
             },
@@ -130,7 +130,7 @@ class TestMCPServer:
 
         assert result["id"] == 1
         assert "result" in result
-        assert result["result"]["protocolVersion"] == "2025-11-25"
+        assert result["result"]["protocolVersion"] == "2024-11-05"
 
     def test_handles_tools_list(self, initialized_server: MCPServer):
         """Should handle tools/list after initialization."""
@@ -276,7 +276,7 @@ class TestMCPServerSecurityIntegration:
                 "id": 1,
                 "method": "initialize",
                 "params": {
-                    "protocolVersion": "2025-11-25",
+                    "protocolVersion": "2024-11-05",
                     "clientInfo": {"name": "test", "version": "1.0"},
                     "capabilities": {},
                 },

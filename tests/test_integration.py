@@ -62,7 +62,7 @@ def initialized_server(server_with_websearch: MCPServer) -> MCPServer:
             "id": 1,
             "method": "initialize",
             "params": {
-                "protocolVersion": "2025-11-25",
+                "protocolVersion": "2024-11-05",
                 "clientInfo": {"name": "integration-test", "version": "1.0"},
                 "capabilities": {},
             },
@@ -96,7 +96,7 @@ class TestServerWithWebSearch:
                     "id": 1,
                     "method": "initialize",
                     "params": {
-                        "protocolVersion": "2025-11-25",
+                        "protocolVersion": "2024-11-05",
                         "clientInfo": {"name": "test", "version": "1.0"},
                         "capabilities": {},
                     },
@@ -107,7 +107,7 @@ class TestServerWithWebSearch:
         result = json.loads(init_response)
         assert result["id"] == 1
         assert "result" in result
-        assert result["result"]["protocolVersion"] == "2025-11-25"
+        assert result["result"]["protocolVersion"] == "2024-11-05"
         assert "tools" in result["result"]["capabilities"]
 
     def test_tools_list_shows_websearch(self, initialized_server: MCPServer):
@@ -181,7 +181,7 @@ class TestFullMessageFlow:
                     "id": 1,
                     "method": "initialize",
                     "params": {
-                        "protocolVersion": "2025-11-25",
+                        "protocolVersion": "2024-11-05",
                         "clientInfo": {"name": "session-test", "version": "1.0"},
                         "capabilities": {},
                     },

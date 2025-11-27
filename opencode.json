@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "bhp-secure": {
+      "type": "local",
+      "command": ["uv", "run", "python", "main.py", "--policy", "config/policy.yaml"],
+      "enabled": true
+    }
+  }
+}

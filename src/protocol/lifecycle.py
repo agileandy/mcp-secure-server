@@ -9,8 +9,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-# Supported MCP protocol version
-MCP_PROTOCOL_VERSION = "2025-11-25"
+# Supported MCP protocol versions (newest first)
+SUPPORTED_PROTOCOL_VERSIONS = ["2024-11-05", "2025-03-26"]
+# Default version to advertise
+MCP_PROTOCOL_VERSION = "2024-11-05"
 
 
 class LifecycleState(Enum):
@@ -95,11 +97,14 @@ class LifecycleManager:
 
         # Validate protocol version
         requested_version = params.get("protocolVersion")
-        if requested_version != MCP_PROTOCOL_VERSION:
+        if requested_version not in SUPPORTED_PROTOCOL_VERSIONS:
             raise ProtocolError(
                 f"Unsupported protocol version: {requested_version}. "
-                f"Expected: {MCP_PROTOCOL_VERSION}"
+                f"Supported: {', '.join(SUPPORTED_PROTOCOL_VERSIONS)}"
             )
+
+        # Use the client's requested version for the response
+        negotiated_version = requested_version
 
         # Store client info
         self.client_info = params.get("clientInfo")
@@ -110,7 +115,7 @@ class LifecycleManager:
 
         # Return server capabilities
         return {
-            "protocolVersion": MCP_PROTOCOL_VERSION,
+            "protocolVersion": negotiated_version,
             "capabilities": self.capabilities,
             "serverInfo": self.server_info,
         }
