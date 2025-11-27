@@ -300,10 +300,14 @@ class TestErrorHandling:
         assert "result" in result
         assert result["result"]["isError"] is True
 
-    @patch("src.plugins.websearch.httpx")
-    def test_handles_network_error(self, mock_httpx, initialized_server: MCPServer):
+    def test_handles_network_error(self, initialized_server: MCPServer):
         """Should return error result when network fails."""
-        mock_httpx.get.side_effect = Exception("Network timeout")
+        # Get the websearch plugin from the tool map and mock its client
+        from unittest.mock import MagicMock
+
+        plugin = initialized_server._dispatcher._tool_map.get("web_search")
+        if plugin:
+            plugin._client.get = MagicMock(side_effect=Exception("Network timeout"))
 
         response = initialized_server.handle_message(
             json.dumps(
@@ -321,4 +325,5 @@ class TestErrorHandling:
         result = json.loads(response)
         assert "result" in result
         assert result["result"]["isError"] is True
-        assert "error" in result["result"]["content"][0]["text"].lower()
+        # Sanitized error message should contain "failed" but not expose internals
+        assert "failed" in result["result"]["content"][0]["text"].lower()

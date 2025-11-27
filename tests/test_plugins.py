@@ -209,6 +209,82 @@ class Plugin(PluginBase):
 
             assert len(plugins) == 0
 
+
+class TestToolDispatcherErrorSanitization:
+    """Tests for error message sanitization in dispatcher [D3]."""
+
+    def test_execution_error_is_sanitized(self):
+        """Should not expose internal error details in ToolExecutionError."""
+
+        class LeakyPlugin(PluginBase):
+            @property
+            def name(self) -> str:
+                return "leaky"
+
+            @property
+            def version(self) -> str:
+                return "1.0.0"
+
+            def get_tools(self) -> list[ToolDefinition]:
+                return [
+                    ToolDefinition(
+                        name="leak",
+                        description="Leaks internal info",
+                        input_schema={"type": "object"},
+                    )
+                ]
+
+            def execute(self, tool_name: str, arguments: dict) -> ToolResult:
+                raise RuntimeError("Database connection to 192.168.1.100:5432 failed")
+
+        dispatcher = ToolDispatcher()
+        dispatcher.register_plugin(LeakyPlugin())
+
+        with pytest.raises(ToolExecutionError) as exc_info:
+            dispatcher.call_tool("leak", {})
+
+        error_msg = str(exc_info.value)
+        # Should NOT contain IP address
+        assert "192.168" not in error_msg
+        # Should NOT contain port
+        assert "5432" not in error_msg
+        # Should still mention the tool name for debugging
+        assert "leak" in error_msg
+
+    def test_error_chain_preserved(self):
+        """Should preserve exception chain for debugging (via __cause__)."""
+
+        class ChainPlugin(PluginBase):
+            @property
+            def name(self) -> str:
+                return "chain"
+
+            @property
+            def version(self) -> str:
+                return "1.0.0"
+
+            def get_tools(self) -> list[ToolDefinition]:
+                return [
+                    ToolDefinition(
+                        name="chain_tool",
+                        description="Chains exception",
+                        input_schema={"type": "object"},
+                    )
+                ]
+
+            def execute(self, tool_name: str, arguments: dict) -> ToolResult:
+                raise ValueError("Original internal error")
+
+        dispatcher = ToolDispatcher()
+        dispatcher.register_plugin(ChainPlugin())
+
+        with pytest.raises(ToolExecutionError) as exc_info:
+            dispatcher.call_tool("chain_tool", {})
+
+        # Exception chain should be preserved for debugging
+        assert exc_info.value.__cause__ is not None
+        assert isinstance(exc_info.value.__cause__, ValueError)
+
     def test_loads_builtin_plugins(self):
         """Should load built-in plugins."""
         loader = PluginLoader(Path("."))

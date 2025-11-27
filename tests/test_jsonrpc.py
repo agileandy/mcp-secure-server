@@ -216,3 +216,34 @@ class TestJsonRpcErrorClass:
         error = JsonRpcError(INVALID_PARAMS, "Bad params", {"field": "name"})
 
         assert error.data == {"field": "name"}
+
+
+class TestMessageSizeLimit:
+    """Tests for message size limits [D8]."""
+
+    def test_rejects_oversized_message(self):
+        """Should reject messages larger than 1MB."""
+        # Create a message just over 1MB
+        large_data = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "test",
+            "params": {"data": "x" * (1024 * 1024 + 100)},
+        }
+        large_message = json.dumps(large_data)
+
+        with pytest.raises(JsonRpcError) as exc_info:
+            parse_message(large_message)
+
+        assert exc_info.value.code == PARSE_ERROR
+        assert "too large" in exc_info.value.message.lower()
+
+    def test_accepts_message_under_limit(self):
+        """Should accept messages under 1MB."""
+        # Create a message just under 1MB
+        data = {"jsonrpc": "2.0", "id": 1, "method": "test", "params": {"data": "x" * 100000}}
+        message = json.dumps(data)
+
+        # Should not raise
+        result = parse_message(message)
+        assert isinstance(result, JsonRpcRequest)

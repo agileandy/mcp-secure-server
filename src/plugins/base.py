@@ -289,3 +289,14 @@ class PluginBase(ABC):
             ToolResult with content and error status.
         """
         pass
+
+    def cleanup(self) -> None:  # noqa: B027
+        """Clean up plugin resources.
+
+        Called when the server is shutting down. Override this method
+        to release any resources held by the plugin (database connections,
+        file handles, etc.).
+
+        The default implementation does nothing.
+        """
+        pass

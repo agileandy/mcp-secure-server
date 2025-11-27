@@ -72,6 +72,19 @@ class TestStdioTransport:
         mock_stderr.seek(0)
         assert "Test message" in mock_stderr.read()
 
+    def test_returns_none_on_read_exception(self):
+        """Should return None when read raises an exception."""
+        from unittest.mock import MagicMock
+
+        mock_stdin = MagicMock()
+        mock_stdin.readline.side_effect = OSError("Pipe broken")
+
+        transport = StdioTransport(stdin=mock_stdin, stdout=io.StringIO())
+
+        # Should return None, not raise
+        result = transport.read_message()
+        assert result is None
+
 
 class TestLifecycleManager:
     """Tests for MCP lifecycle management."""

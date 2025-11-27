@@ -76,7 +76,7 @@ class ToolDispatcher:
         try:
             return plugin.execute(tool_name, arguments)
         except Exception as e:
-            raise ToolExecutionError(f"Tool '{tool_name}' failed: {e}") from e
+            raise ToolExecutionError(f"Tool '{tool_name}' execution failed") from e
 
     def get_tool_schema(self, tool_name: str) -> dict[str, Any] | None:
         """Get the input schema for a tool.
@@ -96,3 +96,12 @@ class ToolDispatcher:
                 return tool.input_schema
 
         return None
+
+    def cleanup(self) -> None:
+        """Clean up all registered plugins.
+
+        Calls cleanup() on each plugin to release resources.
+        Called by MCPServer.close() during shutdown.
+        """
+        for plugin in self._plugins:
+            plugin.cleanup()

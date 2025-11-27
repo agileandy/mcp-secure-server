@@ -12,8 +12,8 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import jsonschema
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
 
 if TYPE_CHECKING:
     from src.security.policy import SecurityPolicy
@@ -268,7 +268,7 @@ class InputValidator:
                 error = errors[0]
                 path = ".".join(str(p) for p in error.path) if error.path else "root"
                 raise ValidationError(f"Schema validation failed at '{path}': {error.message}")
-        except jsonschema.exceptions.SchemaError as e:
+        except SchemaError as e:
             raise ValidationError(f"Invalid schema for tool {tool_name}: {e}") from e
 
         # Then apply security-focused processing

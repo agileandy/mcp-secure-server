@@ -170,3 +170,92 @@ class TestRateLimiterRequestCount:
         limiter.check_rate_limit("test_tool", limit=10)
 
         assert limiter.get_request_count("test_tool") == 3
+
+
+class TestRateLimiterBucketCleanup:
+    """Tests for bucket cleanup to prevent memory leaks [D6]."""
+
+    def test_cleanup_removes_empty_buckets(self) -> None:
+        """Cleanup should remove buckets with no entries."""
+        limiter = RateLimiter(window_seconds=0.1)
+
+        # Add some requests
+        limiter.check_rate_limit("tool_a", limit=10)
+        limiter.check_rate_limit("tool_b", limit=10)
+
+        # Wait for window to expire
+        time.sleep(0.15)
+
+        # Run cleanup
+        limiter.cleanup()
+
+        # Buckets should be removed (not just empty)
+        assert "tool_a" not in limiter._buckets
+        assert "tool_b" not in limiter._buckets
+
+    def test_cleanup_keeps_active_buckets(self) -> None:
+        """Cleanup should keep buckets with recent entries."""
+        limiter = RateLimiter(window_seconds=60.0)
+
+        limiter.check_rate_limit("tool_a", limit=10)
+
+        limiter.cleanup()
+
+        # Bucket should still exist
+        assert "tool_a" in limiter._buckets
+        assert limiter.get_request_count("tool_a") == 1
+
+    def test_bucket_count_property(self) -> None:
+        """Should expose bucket count for monitoring."""
+        limiter = RateLimiter()
+
+        limiter.check_rate_limit("tool_a", limit=10)
+        limiter.check_rate_limit("tool_b", limit=10)
+        limiter.check_rate_limit("tool_c", limit=10)
+
+        assert limiter.bucket_count == 3
+
+    def test_auto_cleanup_triggered_probabilistically(self) -> None:
+        """Cleanup should be triggered automatically during check_rate_limit.
+
+        Uses a short window and many expired buckets to verify cleanup runs.
+        Since cleanup is probabilistic (1 in 100), we force it by setting
+        _last_cleanup to make the threshold pass.
+        """
+        limiter = RateLimiter(window_seconds=0.05)
+
+        # Create many expired buckets
+        for i in range(50):
+            limiter.check_rate_limit(f"tool_{i}", limit=100)
+
+        # Wait for entries to expire
+        time.sleep(0.1)
+
+        # Force cleanup by setting last cleanup time far in the past
+        limiter._last_cleanup = 0.0
+
+        # Next check should trigger cleanup
+        limiter.check_rate_limit("trigger_tool", limit=100)
+
+        # Most old buckets should be cleaned up
+        # (some may remain if cleanup threshold wasn't met)
+        assert limiter.bucket_count <= 10  # Should be much less than 50
+
+    def test_auto_cleanup_respects_interval(self) -> None:
+        """Auto-cleanup shouldn't run too frequently."""
+        limiter = RateLimiter(window_seconds=0.05)
+
+        # Create expired buckets
+        for i in range(10):
+            limiter.check_rate_limit(f"tool_{i}", limit=100)
+
+        time.sleep(0.1)
+
+        # Set last cleanup to now - cleanup shouldn't trigger
+        limiter._last_cleanup = time.time()
+
+        # Check rate limit - should not trigger cleanup due to interval
+        limiter.check_rate_limit("new_tool", limit=100)
+
+        # Old buckets should still exist (cleanup didn't run)
+        assert limiter.bucket_count >= 10

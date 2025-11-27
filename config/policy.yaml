@@ -165,6 +165,14 @@ tools:
     filesystem_write: 30
     command_execute: 10
     web_search: 20
+    # Bug tracker plugin - local SQLite operations (generous limits)
+    init_bugtracker: 5     # Rarely needed, 5/min sufficient
+    add_bug: 60            # Creating bugs is core workflow
+    get_bug: 120           # Reading is frequent and cheap
+    update_bug: 60         # Updates are common
+    close_bug: 60          # Closing bugs (delegates to update)
+    list_bugs: 60          # Listing is common
+    search_bugs_global: 30 # Cross-project search is heavier
   
   # Timeout in seconds
   timeout: 30

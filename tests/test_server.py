@@ -236,3 +236,190 @@ class TestMCPServer:
         )
         result = initialized_server.handle_message(notification)
         assert result is None
+
+
+RATE_LIMITED_POLICY = """
+version: "1.0"
+network:
+  mode: deny_all
+  allowed_endpoints: []
+filesystem:
+  allowed_paths: []
+  denied_paths: []
+tools:
+  allowed: ["echo"]
+  timeout: 30
+  rate_limits:
+    echo: 2
+"""
+
+
+class TestMCPServerSecurityIntegration:
+    """Tests for SecurityEngine integration [D1]."""
+
+    @pytest.fixture
+    def rate_limited_policy_file(self, tmp_path: Path) -> Path:
+        """Create a policy with rate limiting."""
+        policy_path = tmp_path / "policy.yaml"
+        policy_path.write_text(RATE_LIMITED_POLICY)
+        return policy_path
+
+    @pytest.fixture
+    def rate_limited_server(self, rate_limited_policy_file: Path) -> MCPServer:
+        """Create a server with rate limiting enabled."""
+        server = MCPServer(policy_path=rate_limited_policy_file)
+        server.register_plugin(MockPlugin())
+        # Initialize the server
+        init_request = json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-11-25",
+                    "clientInfo": {"name": "test", "version": "1.0"},
+                    "capabilities": {},
+                },
+            }
+        )
+        server.handle_message(init_request)
+        server.handle_message(json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}))
+        return server
+
+    def test_rate_limiting_enforced(self, rate_limited_server: MCPServer):
+        """Should enforce rate limits on tool calls."""
+        call_request = json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": "echo",
+                    "arguments": {"message": "test"},
+                },
+            }
+        )
+
+        # First two calls should succeed (rate limit is 2)
+        response1 = rate_limited_server.handle_message(call_request)
+        result1 = json.loads(response1)
+        assert "error" not in result1
+
+        response2 = rate_limited_server.handle_message(call_request)
+        result2 = json.loads(response2)
+        assert "error" not in result2
+
+        # Third call should be rate limited
+        response3 = rate_limited_server.handle_message(call_request)
+        result3 = json.loads(response3)
+        assert "error" in result3
+        assert "rate" in result3["error"]["message"].lower()
+
+    def test_uses_context_manager(self, rate_limited_policy_file: Path):
+        """Should support context manager for cleanup."""
+        with MCPServer(policy_path=rate_limited_policy_file) as server:
+            assert server is not None
+        # Should not raise after exiting context
+
+
+class TestServerPluginCleanup:
+    """Tests for plugin cleanup during server shutdown [A5]."""
+
+    def test_close_calls_plugin_cleanup(self, tmp_path: Path):
+        """Server.close() should call cleanup on all registered plugins."""
+        # Create policy file
+        policy = tmp_path / "policy.yaml"
+        policy.write_text(MINIMAL_POLICY)
+
+        # Create a mock plugin that tracks cleanup calls
+        cleanup_called = []
+
+        class CleanupTrackingPlugin(PluginBase):
+            @property
+            def name(self) -> str:
+                return "cleanup_tracker"
+
+            @property
+            def version(self) -> str:
+                return "1.0.0"
+
+            def get_tools(self) -> list[ToolDefinition]:
+                return []
+
+            def execute(self, tool_name: str, arguments: dict) -> ToolResult:
+                return ToolResult(content=[], is_error=True)
+
+            def cleanup(self) -> None:
+                cleanup_called.append(True)
+
+        server = MCPServer(policy_path=policy)
+        server.register_plugin(CleanupTrackingPlugin())
+
+        # Close should trigger cleanup
+        server.close()
+
+        assert len(cleanup_called) == 1
+
+    def test_close_calls_cleanup_on_multiple_plugins(self, tmp_path: Path):
+        """Server.close() should call cleanup on all plugins."""
+        policy = tmp_path / "policy.yaml"
+        policy.write_text(MINIMAL_POLICY)
+
+        cleanup_log = []
+
+        class Plugin1(PluginBase):
+            @property
+            def name(self) -> str:
+                return "plugin1"
+
+            @property
+            def version(self) -> str:
+                return "1.0.0"
+
+            def get_tools(self) -> list[ToolDefinition]:
+                return []
+
+            def execute(self, tool_name: str, arguments: dict) -> ToolResult:
+                return ToolResult(content=[], is_error=True)
+
+            def cleanup(self) -> None:
+                cleanup_log.append("plugin1")
+
+        class Plugin2(PluginBase):
+            @property
+            def name(self) -> str:
+                return "plugin2"
+
+            @property
+            def version(self) -> str:
+                return "1.0.0"
+
+            def get_tools(self) -> list[ToolDefinition]:
+                return []
+
+            def execute(self, tool_name: str, arguments: dict) -> ToolResult:
+                return ToolResult(content=[], is_error=True)
+
+            def cleanup(self) -> None:
+                cleanup_log.append("plugin2")
+
+        server = MCPServer(policy_path=policy)
+        server.register_plugin(Plugin1())
+        server.register_plugin(Plugin2())
+
+        server.close()
+
+        assert "plugin1" in cleanup_log
+        assert "plugin2" in cleanup_log
+
+    def test_plugins_without_cleanup_are_skipped(self, tmp_path: Path):
+        """Plugins that don't override cleanup should not cause errors."""
+        policy = tmp_path / "policy.yaml"
+        policy.write_text(MINIMAL_POLICY)
+
+        # Use MockPlugin which doesn't define cleanup
+        server = MCPServer(policy_path=policy)
+        server.register_plugin(MockPlugin())
+
+        # Should not raise
+        server.close()

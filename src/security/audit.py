@@ -2,6 +2,13 @@
 
 Provides immutable, append-only audit logging with JSON Lines format
 for all tool executions and security events.
+
+@todo [D11] P4: Improve branch coverage for file I/O edge cases.
+      Current coverage ~75%, target 90%. Add tests for:
+      - File open failures (permissions, disk full)
+      - Write failures mid-operation
+      - Context manager edge cases
+      See .refactor/20251127-155100/ for full analysis.
 """
 
 from __future__ import annotations

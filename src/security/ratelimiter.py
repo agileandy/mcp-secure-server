@@ -44,16 +44,42 @@ class RateLimiter:
 
         self._window_seconds = window_seconds
         self._buckets: dict[str, list[float]] = defaultdict(list)
+        self._last_cleanup: float = time.time()
+        self._cleanup_interval: float = 60.0  # Run cleanup at most every 60s
 
     @property
     def window_seconds(self) -> float:
         """Get the window size in seconds."""
         return self._window_seconds
 
+    @property
+    def bucket_count(self) -> int:
+        """Get the number of tracked tool buckets."""
+        return len(self._buckets)
+
+    def cleanup(self) -> None:
+        """Remove empty buckets to prevent memory leaks.
+
+        Removes any bucket keys where all timestamps have expired
+        outside the current window.
+        """
+        now = time.time()
+        window_start = now - self._window_seconds
+
+        # Find and remove empty buckets
+        empty_keys = [
+            key
+            for key, timestamps in self._buckets.items()
+            if not any(t > window_start for t in timestamps)
+        ]
+        for key in empty_keys:
+            del self._buckets[key]
+
     def check_rate_limit(self, tool_name: str, limit: int) -> None:
         """Check if a tool invocation is within rate limits.
 
-        Records the request if allowed.
+        Records the request if allowed. May trigger automatic cleanup
+        of expired buckets to prevent memory leaks.
 
         Args:
             tool_name: Name of the tool being invoked.
@@ -64,6 +90,11 @@ class RateLimiter:
         """
         now = time.time()
         window_start = now - self._window_seconds
+
+        # Periodic cleanup to prevent memory leaks from accumulated empty buckets
+        if now - self._last_cleanup >= self._cleanup_interval:
+            self.cleanup()
+            self._last_cleanup = now
 
         # Clean old entries outside the window
         bucket = self._buckets[tool_name]

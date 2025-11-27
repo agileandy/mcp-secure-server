@@ -22,6 +22,7 @@ from src.protocol.jsonrpc import (
 )
 from src.protocol.lifecycle import LifecycleManager, ProtocolError
 from src.protocol.tools import ToolsHandler
+from src.security.engine import RateLimitExceeded, SecurityEngine
 from src.security.policy import SecurityPolicy, load_policy
 
 
@@ -57,6 +58,7 @@ class MCPServer:
         self._lifecycle = LifecycleManager()
         self._dispatcher = ToolDispatcher()
         self._tools_handler = ToolsHandler(self._dispatcher)
+        self._security_engine = SecurityEngine(self._policy)
 
     def register_plugin(self, plugin: PluginBase) -> None:
         """Register a plugin.
@@ -142,8 +144,28 @@ class MCPServer:
         elif method == "tools/call":
             name = params.get("name", "")
             arguments = params.get("arguments", {})
+
+            # Check rate limit before execution
+            try:
+                self._security_engine.check_rate_limit(name)
+            except RateLimitExceeded:
+                return format_error(msg_id, INTERNAL_ERROR, f"Rate limit exceeded for tool: {name}")
+
             result = self._tools_handler.handle_call(name, arguments)
             return format_response(msg_id, result.to_dict())
 
         else:
             return format_error(msg_id, METHOD_NOT_FOUND, f"Unknown method: {method}")
+
+    def close(self) -> None:
+        """Close the server and clean up resources."""
+        self._dispatcher.cleanup()
+        self._security_engine.close()
+
+    def __enter__(self) -> MCPServer:
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Context manager exit."""
+        self.close()

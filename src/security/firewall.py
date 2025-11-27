@@ -11,6 +11,8 @@ import socket
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
+from cachetools import TTLCache
+
 if TYPE_CHECKING:
     from src.security.policy import SecurityPolicy
 
@@ -67,7 +69,8 @@ class NetworkFirewall:
         """
         self._policy = policy
         self._allowed_networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
-        self._dns_cache: dict[str, str] = {}
+        # DNS cache with TTL (5 minutes) and max size (1000 entries)
+        self._dns_cache: TTLCache[str, str] = TTLCache(maxsize=1000, ttl=300)
 
         # Parse allowed network ranges
         for cidr in policy.network_allowed_ranges:
@@ -129,8 +132,9 @@ class NetworkFirewall:
             if not results:
                 raise SecurityError(f"DNS resolution failed for: {hostname}")
 
-            # Get first IP address
-            ip_address = results[0][4][0]
+            # Get first IP address from sockaddr tuple
+            # IPv4: (ip, port), IPv6: (ip, port, flow, scope)
+            ip_address = str(results[0][4][0])
             self._dns_cache[hostname] = ip_address
             return ip_address
         except socket.gaierror as e:

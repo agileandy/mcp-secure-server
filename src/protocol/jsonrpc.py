@@ -16,6 +16,9 @@ METHOD_NOT_FOUND = -32601
 INVALID_PARAMS = -32602
 INTERNAL_ERROR = -32603
 
+# Maximum message size (1 MB)
+MAX_MESSAGE_SIZE = 1_048_576
+
 
 class JsonRpcError(Exception):
     """JSON-RPC error with code and message."""
@@ -63,6 +66,12 @@ def parse_message(raw: str) -> JsonRpcRequest | JsonRpcNotification:
     Raises:
         JsonRpcError: If the message is invalid.
     """
+    # Check message size before parsing to prevent DoS
+    if len(raw) > MAX_MESSAGE_SIZE:
+        raise JsonRpcError(
+            PARSE_ERROR, f"Message too large: {len(raw)} bytes exceeds {MAX_MESSAGE_SIZE} limit"
+        )
+
     # Parse JSON
     try:
         data = json.loads(raw)

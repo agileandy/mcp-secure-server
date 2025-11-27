@@ -322,3 +322,25 @@ class TestNetworkFirewallEdgeCases:
         firewall = NetworkFirewall(basic_policy)
         with pytest.raises(SecurityError, match="DNS.*not allowed"):
             firewall._resolve_hostname("evil.com")
+
+
+class TestDnsCacheTTL:
+    """Tests for DNS cache TTL behavior [D5]."""
+
+    def test_dns_cache_is_ttl_cache(self, basic_policy: SecurityPolicy):
+        """DNS cache should be a TTLCache instance."""
+        from cachetools import TTLCache
+
+        firewall = NetworkFirewall(basic_policy)
+        assert isinstance(firewall._dns_cache, TTLCache)
+
+    def test_dns_cache_has_max_size(self, basic_policy: SecurityPolicy):
+        """DNS cache should have a maximum size to prevent unbounded growth."""
+        firewall = NetworkFirewall(basic_policy)
+        assert firewall._dns_cache.maxsize <= 1000  # Reasonable limit
+
+    def test_dns_cache_has_ttl(self, basic_policy: SecurityPolicy):
+        """DNS cache should have a TTL for entries."""
+        firewall = NetworkFirewall(basic_policy)
+        assert firewall._dns_cache.ttl > 0
+        assert firewall._dns_cache.ttl <= 600  # Max 10 minutes

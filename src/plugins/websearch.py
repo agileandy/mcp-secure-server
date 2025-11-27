@@ -28,6 +28,18 @@ class WebSearchPlugin(PluginBase):
     returns formatted search results.
     """
 
+    def __init__(self) -> None:
+        """Initialize the plugin with a reusable HTTP client."""
+        self._client = httpx.Client(
+            headers={"User-Agent": USER_AGENT},
+            follow_redirects=True,
+            timeout=10.0,
+        )
+
+    def close(self) -> None:
+        """Close the HTTP client and release resources."""
+        self._client.close()
+
     @property
     def name(self) -> str:
         """Return plugin identifier."""
@@ -54,11 +66,14 @@ class WebSearchPlugin(PluginBase):
                         "query": {
                             "type": "string",
                             "description": "The search query",
+                            "maxLength": 500,
                         },
                         "max_results": {
                             "type": "integer",
                             "description": "Maximum number of results to return (default: 5)",
                             "default": 5,
+                            "minimum": 1,
+                            "maximum": 20,
                         },
                     },
                     "required": ["query"],
@@ -91,9 +106,21 @@ class WebSearchPlugin(PluginBase):
                 content=[{"type": "text", "text": results}],
                 is_error=False,
             )
-        except Exception as e:
+        except httpx.TimeoutException:
             return ToolResult(
-                content=[{"type": "text", "text": f"Search error: {e}"}],
+                content=[{"type": "text", "text": "Search timed out. Please try again."}],
+                is_error=True,
+            )
+        except httpx.HTTPStatusError as e:
+            return ToolResult(
+                content=[
+                    {"type": "text", "text": f"Search failed (HTTP {e.response.status_code})"}
+                ],
+                is_error=True,
+            )
+        except Exception:
+            return ToolResult(
+                content=[{"type": "text", "text": "Search failed. Please try again later."}],
                 is_error=True,
             )
 
@@ -111,13 +138,8 @@ class WebSearchPlugin(PluginBase):
         params = {"q": query, "kl": "us-en"}
         url = f"{DUCKDUCKGO_LITE_URL}?{urllib.parse.urlencode(params)}"
 
-        # Make the request
-        response = httpx.get(
-            url,
-            headers={"User-Agent": USER_AGENT},
-            follow_redirects=True,
-            timeout=10.0,
-        )
+        # Make the request using the pooled client
+        response = self._client.get(url)
         response.raise_for_status()
 
         # Parse the results

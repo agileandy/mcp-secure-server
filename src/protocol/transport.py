@@ -44,7 +44,8 @@ class StdioTransport:
         while True:
             try:
                 line = self._stdin.readline()
-            except Exception:
+            except OSError:
+                # Handle broken pipes, closed streams, etc.
                 return None
 
             if not line:  # EOF
