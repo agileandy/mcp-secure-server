@@ -517,6 +517,8 @@ Search bugs across all indexed projects.
 
 ## Creating Custom Plugins
 
+### Python Plugins
+
 Plugins must inherit from `PluginBase` and implement the required methods:
 
 ```python
@@ -565,6 +567,202 @@ from my_plugin import MyPlugin
 
 server.register_plugin(MyPlugin())
 ```
+
+### External Plugins (Non-Python)
+
+The plugin system can support tools written in any language (Rust, JavaScript, TypeScript, Go, etc.) through a subprocess wrapper approach. This is a planned feature - contributions welcome.
+
+#### Architecture Overview
+
+External plugins run as separate processes, communicating with the Python wrapper via JSON over stdin/stdout:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     MCP Server (Python)                      │
+│                                                              │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   │
+│  │ WebSearch    │    │ BugTracker   │    │ External     │   │
+│  │ (Python)     │    │ (Python)     │    │ Plugin       │   │
+│  └──────────────┘    └──────────────┘    │ (Wrapper)    │   │
+│                                          └──────┬───────┘   │
+│                                                 │            │
+└─────────────────────────────────────────────────┼────────────┘
+                                                  │ JSON/stdin/stdout
+                                                  ▼
+                                          ┌──────────────┐
+                                          │ my-rust-tool │
+                                          │ (subprocess) │
+                                          └──────────────┘
+```
+
+#### How It Works
+
+1. **Python Wrapper**: A thin `ExternalPlugin` class inherits from `PluginBase` and handles the subprocess lifecycle
+2. **Manifest**: A `manifest.yaml` declares the tool definitions and points to the executable
+3. **Contract**: The external tool receives JSON on stdin and writes JSON to stdout
+
+#### Manifest Format
+
+```yaml
+name: my-rust-tools
+version: "1.0.0"
+type: external
+executable: ./target/release/my-rust-tool
+
+tools:
+  - name: calculate_hash
+    description: Calculate cryptographic hash of input
+    input_schema:
+      type: object
+      properties:
+        algorithm:
+          type: string
+          enum: [sha256, sha512, blake3]
+        input:
+          type: string
+      required: [algorithm, input]
+```
+
+#### External Tool Contract
+
+The external executable must:
+
+1. **Accept** a JSON object on stdin:
+```json
+{
+  "tool": "calculate_hash",
+  "arguments": {
+    "algorithm": "sha256",
+    "input": "hello world"
+  }
+}
+```
+
+2. **Return** a JSON object on stdout:
+```json
+{
+  "content": [
+    {"type": "text", "text": "sha256: b94d27b9934d3e08..."}
+  ],
+  "isError": false
+}
+```
+
+3. **Exit** with code 0 on success, non-zero on failure
+
+#### Example: Rust Tool
+
+```rust
+use serde::{Deserialize, Serialize};
+use std::io::{self, BufRead, Write};
+
+#[derive(Deserialize)]
+struct Request {
+    tool: String,
+    arguments: serde_json::Value,
+}
+
+#[derive(Serialize)]
+struct Response {
+    content: Vec<Content>,
+    #[serde(rename = "isError")]
+    is_error: bool,
+}
+
+#[derive(Serialize)]
+struct Content {
+    #[serde(rename = "type")]
+    content_type: String,
+    text: String,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let line = stdin.lock().lines().next().unwrap().unwrap();
+    let request: Request = serde_json::from_str(&line).unwrap();
+    
+    let result = match request.tool.as_str() {
+        "calculate_hash" => calculate_hash(request.arguments),
+        _ => Err(format!("Unknown tool: {}", request.tool)),
+    };
+    
+    let response = match result {
+        Ok(text) => Response {
+            content: vec![Content { content_type: "text".into(), text }],
+            is_error: false,
+        },
+        Err(e) => Response {
+            content: vec![Content { content_type: "text".into(), text: e }],
+            is_error: true,
+        },
+    };
+    
+    println!("{}", serde_json::to_string(&response).unwrap());
+}
+```
+
+#### Example: Node.js Tool
+
+```javascript
+const readline = require('readline');
+
+const rl = readline.createInterface({ input: process.stdin });
+
+rl.on('line', (line) => {
+  const request = JSON.parse(line);
+  
+  let response;
+  try {
+    const result = handleTool(request.tool, request.arguments);
+    response = {
+      content: [{ type: 'text', text: result }],
+      isError: false
+    };
+  } catch (e) {
+    response = {
+      content: [{ type: 'text', text: e.message }],
+      isError: true
+    };
+  }
+  
+  console.log(JSON.stringify(response));
+  process.exit(0);
+});
+
+function handleTool(tool, args) {
+  switch (tool) {
+    case 'format_json':
+      return JSON.stringify(JSON.parse(args.input), null, 2);
+    default:
+      throw new Error(`Unknown tool: ${tool}`);
+  }
+}
+```
+
+#### Security Considerations for External Plugins
+
+1. **Process Isolation**: External tools run in separate processes with their own memory space
+2. **Timeout Enforcement**: The wrapper kills subprocesses that exceed the configured timeout
+3. **No Network Inheritance**: Subprocess network access is governed by OS-level controls
+4. **Executable Allowlist**: Only executables listed in registered manifests can be invoked
+5. **Input Validation**: JSON schemas are validated before passing to the subprocess
+
+#### Trade-offs
+
+| Aspect | Python Plugin | External Plugin |
+|--------|---------------|-----------------|
+| **Startup latency** | None | ~10-50ms per call |
+| **Memory** | Shared with server | Separate process |
+| **Language** | Python only | Any language |
+| **Debugging** | Easy | Harder (separate process) |
+| **Security** | Shared memory space | Process isolation |
+
+#### When to Use External Plugins
+
+- **Performance-critical tools**: Rust/Go for CPU-intensive operations
+- **Existing CLI tools**: Wrap existing binaries without rewriting
+- **Language-specific libraries**: Use npm packages, Cargo crates, etc.
+- **Team expertise**: Let teams use their preferred language
 
 ## Development
 
