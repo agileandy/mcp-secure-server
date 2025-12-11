@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from src.protocol.jsonrpc import (
+from mcp_secure_server.protocol.jsonrpc import (
     INTERNAL_ERROR,
     INVALID_PARAMS,
     INVALID_REQUEST,

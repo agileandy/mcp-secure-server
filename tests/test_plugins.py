@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from src.plugins.base import PluginBase, ToolDefinition, ToolResult
-from src.plugins.dispatcher import ToolDispatcher, ToolExecutionError, ToolNotFoundError
-from src.plugins.loader import PluginLoader
+from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
+from mcp_secure_server.plugins.dispatcher import ToolDispatcher, ToolExecutionError, ToolNotFoundError
+from mcp_secure_server.plugins.loader import PluginLoader
 
 
 class MockPlugin(PluginBase):
@@ -168,7 +168,7 @@ class TestPluginLoader:
 
             # Create handler.py
             handler_code = """
-from src.plugins.base import PluginBase, ToolDefinition, ToolResult
+from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
 
 class Plugin(PluginBase):
     @property

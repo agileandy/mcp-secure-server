@@ -10,12 +10,12 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from src.security.audit import AuditLogger
-from src.security.firewall import NetworkFirewall, SecurityError
-from src.security.policy import SecurityPolicy
-from src.security.ratelimiter import RateLimiter
-from src.security.ratelimiter import RateLimitExceeded as RateLimitExceeded  # Re-export
-from src.security.validator import InputValidator, ValidationError
+from mcp_secure_server.security.audit import AuditLogger
+from mcp_secure_server.security.firewall import NetworkFirewall, SecurityError
+from mcp_secure_server.security.policy import SecurityPolicy
+from mcp_secure_server.security.ratelimiter import RateLimiter
+from mcp_secure_server.security.ratelimiter import RateLimitExceeded as RateLimitExceeded  # Re-export
+from mcp_secure_server.security.validator import InputValidator, ValidationError
 
 
 class SecurityViolation(Exception):

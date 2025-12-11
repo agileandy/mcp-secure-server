@@ -7,12 +7,12 @@ from unittest.mock import patch
 
 import pytest
 
-from src.security.engine import (
+from mcp_secure_server.security.engine import (
     RateLimitExceeded,
     SecurityEngine,
     SecurityViolation,
 )
-from src.security.policy import SecurityPolicy
+from mcp_secure_server.security.policy import SecurityPolicy
 
 
 @pytest.fixture

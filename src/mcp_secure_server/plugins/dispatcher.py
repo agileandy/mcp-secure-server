@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.plugins.base import PluginBase, ToolResult
+from mcp_secure_server.plugins.base import PluginBase, ToolResult
 
 
 class ToolNotFoundError(Exception):

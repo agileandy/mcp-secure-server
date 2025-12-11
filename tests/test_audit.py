@@ -5,7 +5,7 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-from src.security.audit import AuditEvent, AuditLogger, SecurityEvent
+from mcp_secure_server.security.audit import AuditEvent, AuditLogger, SecurityEvent
 
 
 class TestAuditEvent:

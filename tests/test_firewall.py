@@ -5,13 +5,13 @@ from unittest.mock import patch
 
 import pytest
 
-from src.security.firewall import (
+from mcp_secure_server.security.firewall import (
     NetworkFirewall,
     SecurityError,
     is_private_address,
     parse_ip_network,
 )
-from src.security.policy import SecurityPolicy
+from mcp_secure_server.security.policy import SecurityPolicy
 
 
 @pytest.fixture

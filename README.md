@@ -522,7 +522,7 @@ Search bugs across all indexed projects.
 Plugins must inherit from `PluginBase` and implement the required methods:
 
 ```python
-from src.plugins.base import PluginBase, ToolDefinition, ToolResult
+from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
 
 class MyPlugin(PluginBase):
     @property
@@ -794,13 +794,13 @@ uv run ruff format .
 
 ### Project Structure
 
-| Directory | Purpose |
-|-----------|---------|
-| `src/protocol/` | MCP protocol implementation (JSON-RPC, STDIO, lifecycle) |
-| `src/plugins/` | Plugin system and built-in plugins |
-| `src/security/` | Security layer (firewall, validation, audit) |
-| `tests/` | Test suite |
-| `config/` | Configuration files |
+| Directory                         | Purpose |
+|-----------------------------------|---------|
+| `src/mcp_secure_server/protocol/` | MCP protocol implementation (JSON-RPC, STDIO, lifecycle) |
+| `src/mcp_secure_server/plugins/`  | Plugin system and built-in plugins |
+| `src/mcp_secure_server/security/` | Security layer (firewall, validation, audit) |
+| `tests/`                          | Test suite |
+| `config/`                         | Configuration files |
 
 ## MCP Protocol Support
 

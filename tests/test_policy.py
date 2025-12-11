@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from src.security.policy import (
+from mcp_secure_server.security.policy import (
     PolicyLoadError,
     SecurityPolicy,
     expand_env_vars,

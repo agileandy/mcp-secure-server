@@ -2,7 +2,7 @@
 
 import json
 
-from src.plugins.base import PluginBase
+from mcp_secure_server.plugins.base import PluginBase
 
 
 class TestGlobalDatabaseHelpers:
@@ -10,7 +10,7 @@ class TestGlobalDatabaseHelpers:
 
     def test_get_global_db_path_returns_home_based_path(self, monkeypatch):
         """Should return path under ~/.mcp-bugtracker/."""
-        from src.plugins.bugtracker import get_global_db_path
+        from mcp_secure_server.plugins.bugtracker import get_global_db_path
 
         monkeypatch.setenv("HOME", "/Users/testuser")
         path = get_global_db_path()
@@ -19,7 +19,7 @@ class TestGlobalDatabaseHelpers:
 
     def test_compute_project_id_format(self):
         """Should return basename-hash8 format."""
-        from src.plugins.bugtracker import compute_project_id
+        from mcp_secure_server.plugins.bugtracker import compute_project_id
 
         project_id = compute_project_id("/Users/andy/my-project")
 
@@ -29,7 +29,7 @@ class TestGlobalDatabaseHelpers:
 
     def test_compute_project_id_deterministic(self):
         """Same path should always produce same ID."""
-        from src.plugins.bugtracker import compute_project_id
+        from mcp_secure_server.plugins.bugtracker import compute_project_id
 
         id1 = compute_project_id("/Users/andy/my-project")
         id2 = compute_project_id("/Users/andy/my-project")
@@ -38,7 +38,7 @@ class TestGlobalDatabaseHelpers:
 
     def test_compute_project_id_different_for_different_paths(self):
         """Different paths should produce different IDs."""
-        from src.plugins.bugtracker import compute_project_id
+        from mcp_secure_server.plugins.bugtracker import compute_project_id
 
         id1 = compute_project_id("/Users/andy/project1")
         id2 = compute_project_id("/Users/andy/project2")
@@ -47,7 +47,7 @@ class TestGlobalDatabaseHelpers:
 
     def test_compute_project_id_same_basename_different_parents(self):
         """Same basename but different parents should produce different IDs."""
-        from src.plugins.bugtracker import compute_project_id
+        from mcp_secure_server.plugins.bugtracker import compute_project_id
 
         id1 = compute_project_id("/Users/andy/work/my-project")
         id2 = compute_project_id("/Users/andy/personal/my-project")
@@ -63,28 +63,28 @@ class TestBugTrackerPluginInterface:
 
     def test_implements_plugin_interface(self):
         """Should implement PluginBase interface."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         assert isinstance(plugin, PluginBase)
 
     def test_has_correct_name(self):
         """Should have correct plugin name."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         assert plugin.name == "bugtracker"
 
     def test_has_version(self):
         """Should have a version string."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         assert plugin.version == "1.0.0"
 
     def test_provides_tools(self):
         """Should provide bug tracking tools."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         tools = plugin.get_tools()
@@ -95,7 +95,7 @@ class TestBugTrackerPluginInterface:
 
     def test_handles_unknown_tool(self):
         """Should return error for unknown tool."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         result = plugin.execute("unknown_tool", {})
@@ -109,7 +109,7 @@ class TestBugDataModels:
 
     def test_related_bug_creation(self):
         """Should create RelatedBug with required fields."""
-        from src.plugins.bugtracker import RelatedBug
+        from mcp_secure_server.plugins.bugtracker import RelatedBug
 
         related = RelatedBug(bug_id="bug-123", relationship="duplicate_of")
         assert related.bug_id == "bug-123"
@@ -117,7 +117,7 @@ class TestBugDataModels:
 
     def test_related_bug_to_dict(self):
         """Should serialize RelatedBug to dictionary."""
-        from src.plugins.bugtracker import RelatedBug
+        from mcp_secure_server.plugins.bugtracker import RelatedBug
 
         related = RelatedBug(bug_id="bug-123", relationship="blocks")
         data = related.to_dict()
@@ -126,7 +126,7 @@ class TestBugDataModels:
 
     def test_related_bug_from_dict(self):
         """Should deserialize RelatedBug from dictionary."""
-        from src.plugins.bugtracker import RelatedBug
+        from mcp_secure_server.plugins.bugtracker import RelatedBug
 
         data = {"bug_id": "bug-456", "relationship": "related_to"}
         related = RelatedBug.from_dict(data)
@@ -136,7 +136,7 @@ class TestBugDataModels:
 
     def test_history_entry_with_changes(self):
         """Should create HistoryEntry with field changes."""
-        from src.plugins.bugtracker import HistoryEntry
+        from mcp_secure_server.plugins.bugtracker import HistoryEntry
 
         entry = HistoryEntry(
             timestamp="2025-11-27T10:00:00Z",
@@ -149,7 +149,7 @@ class TestBugDataModels:
 
     def test_history_entry_note_only(self):
         """Should create HistoryEntry with note but no field changes."""
-        from src.plugins.bugtracker import HistoryEntry
+        from mcp_secure_server.plugins.bugtracker import HistoryEntry
 
         entry = HistoryEntry(
             timestamp="2025-11-27T11:00:00Z",
@@ -161,7 +161,7 @@ class TestBugDataModels:
 
     def test_history_entry_to_dict(self):
         """Should serialize HistoryEntry to dictionary."""
-        from src.plugins.bugtracker import HistoryEntry
+        from mcp_secure_server.plugins.bugtracker import HistoryEntry
 
         entry = HistoryEntry(
             timestamp="2025-11-27T10:00:00Z",
@@ -176,7 +176,7 @@ class TestBugDataModels:
 
     def test_history_entry_from_dict(self):
         """Should deserialize HistoryEntry from dictionary."""
-        from src.plugins.bugtracker import HistoryEntry
+        from mcp_secure_server.plugins.bugtracker import HistoryEntry
 
         data = {
             "timestamp": "2025-11-27T10:00:00Z",
@@ -191,7 +191,7 @@ class TestBugDataModels:
 
     def test_bug_creation_minimal(self):
         """Should create Bug with minimal required fields."""
-        from src.plugins.bugtracker import Bug
+        from mcp_secure_server.plugins.bugtracker import Bug
 
         bug = Bug(
             id="bug-001",
@@ -212,7 +212,7 @@ class TestBugDataModels:
 
     def test_bug_creation_full(self):
         """Should create Bug with all fields populated."""
-        from src.plugins.bugtracker import Bug, HistoryEntry, RelatedBug
+        from mcp_secure_server.plugins.bugtracker import Bug, HistoryEntry, RelatedBug
 
         bug = Bug(
             id="bug-002",
@@ -240,7 +240,7 @@ class TestBugDataModels:
 
     def test_bug_to_dict(self):
         """Should serialize Bug to dictionary."""
-        from src.plugins.bugtracker import Bug, HistoryEntry, RelatedBug
+        from mcp_secure_server.plugins.bugtracker import Bug, HistoryEntry, RelatedBug
 
         bug = Bug(
             id="bug-003",
@@ -271,7 +271,7 @@ class TestBugDataModels:
 
     def test_bug_from_dict(self):
         """Should deserialize Bug from dictionary."""
-        from src.plugins.bugtracker import Bug
+        from mcp_secure_server.plugins.bugtracker import Bug
 
         data = {
             "id": "bug-004",
@@ -302,7 +302,7 @@ class TestBugDataModels:
 
     def test_bug_json_roundtrip(self):
         """Should survive JSON serialization roundtrip."""
-        from src.plugins.bugtracker import Bug, HistoryEntry, RelatedBug
+        from mcp_secure_server.plugins.bugtracker import Bug, HistoryEntry, RelatedBug
 
         original = Bug(
             id="bug-005",
@@ -339,7 +339,7 @@ class TestBugStore:
 
     def test_create_store(self, tmp_path):
         """Should create a new BugStore instance."""
-        from src.plugins.bugtracker import BugStore
+        from mcp_secure_server.plugins.bugtracker import BugStore
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -348,7 +348,7 @@ class TestBugStore:
 
     def test_initialize_creates_tables(self, tmp_path):
         """Should create bugs table on initialization."""
-        from src.plugins.bugtracker import BugStore
+        from mcp_secure_server.plugins.bugtracker import BugStore
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -361,7 +361,7 @@ class TestBugStore:
 
     def test_add_bug(self, tmp_path):
         """Should add a bug to the store."""
-        from src.plugins.bugtracker import Bug, BugStore
+        from mcp_secure_server.plugins.bugtracker import Bug, BugStore
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -389,7 +389,7 @@ class TestBugStore:
 
     def test_get_bug_not_found(self, tmp_path):
         """Should return None for non-existent bug."""
-        from src.plugins.bugtracker import BugStore
+        from mcp_secure_server.plugins.bugtracker import BugStore
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -401,7 +401,7 @@ class TestBugStore:
 
     def test_update_bug(self, tmp_path):
         """Should update an existing bug."""
-        from src.plugins.bugtracker import Bug, BugStore, HistoryEntry
+        from mcp_secure_server.plugins.bugtracker import Bug, BugStore, HistoryEntry
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -445,7 +445,7 @@ class TestBugStore:
 
     def test_list_bugs_empty(self, tmp_path):
         """Should return empty list when no bugs."""
-        from src.plugins.bugtracker import BugStore
+        from mcp_secure_server.plugins.bugtracker import BugStore
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -457,7 +457,7 @@ class TestBugStore:
 
     def test_list_bugs_all(self, tmp_path):
         """Should return all bugs when no filter."""
-        from src.plugins.bugtracker import Bug, BugStore
+        from mcp_secure_server.plugins.bugtracker import Bug, BugStore
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -486,7 +486,7 @@ class TestBugStore:
 
     def test_list_bugs_filter_status(self, tmp_path):
         """Should filter bugs by status."""
-        from src.plugins.bugtracker import Bug, BugStore
+        from mcp_secure_server.plugins.bugtracker import Bug, BugStore
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -530,7 +530,7 @@ class TestBugStore:
 
     def test_list_bugs_filter_priority(self, tmp_path):
         """Should filter bugs by priority."""
-        from src.plugins.bugtracker import Bug, BugStore
+        from mcp_secure_server.plugins.bugtracker import Bug, BugStore
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -574,7 +574,7 @@ class TestBugStore:
 
     def test_list_bugs_filter_tags(self, tmp_path):
         """Should filter bugs by tags."""
-        from src.plugins.bugtracker import Bug, BugStore
+        from mcp_secure_server.plugins.bugtracker import Bug, BugStore
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -618,7 +618,7 @@ class TestBugStore:
 
     def test_bug_with_related_bugs_roundtrip(self, tmp_path):
         """Should store and retrieve bugs with related bugs."""
-        from src.plugins.bugtracker import Bug, BugStore, RelatedBug
+        from mcp_secure_server.plugins.bugtracker import Bug, BugStore, RelatedBug
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -652,7 +652,7 @@ class TestBugStore:
         """Should use WAL mode for better concurrency."""
         import sqlite3
 
-        from src.plugins.bugtracker import BugStore
+        from mcp_secure_server.plugins.bugtracker import BugStore
 
         db_path = tmp_path / "bugs.db"
         store = BugStore(db_path)
@@ -677,7 +677,7 @@ class TestInitBugtrackerTool:
         """Should return project_id and database path on success."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         # Use temp home to avoid modifying real ~/.mcp-bugtracker
         monkeypatch.setenv("HOME", str(tmp_path))
@@ -698,7 +698,7 @@ class TestInitBugtrackerTool:
 
     def test_init_creates_global_database(self, tmp_path, monkeypatch):
         """Should create global database at ~/.mcp-bugtracker/bugs.db."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -713,7 +713,7 @@ class TestInitBugtrackerTool:
 
     def test_init_allows_reinit(self, tmp_path, monkeypatch):
         """Should allow multiple init calls (idempotent)."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -732,7 +732,7 @@ class TestInitBugtrackerTool:
 
     def test_init_handles_invalid_path(self, tmp_path):
         """Should handle invalid project path gracefully."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         result = plugin.execute("init_bugtracker", {"project_path": str(tmp_path / "nonexistent")})
@@ -742,7 +742,7 @@ class TestInitBugtrackerTool:
 
     def test_init_requires_project_path(self, tmp_path, monkeypatch):
         """Should require project_path argument or MCP_PROJECT_PATH env var."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         # Remove env var if set
         monkeypatch.delenv("MCP_PROJECT_PATH", raising=False)
@@ -759,7 +759,7 @@ class TestAddBugTool:
 
     def test_add_bug_minimal(self, tmp_path):
         """Should add bug with just title."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -775,7 +775,7 @@ class TestAddBugTool:
 
     def test_add_bug_with_all_fields(self, tmp_path):
         """Should add bug with all optional fields."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -795,7 +795,7 @@ class TestAddBugTool:
 
     def test_add_bug_generates_uuid(self, tmp_path):
         """Should generate unique bug IDs."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -814,7 +814,7 @@ class TestAddBugTool:
         """Should default status to 'open'."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -836,7 +836,7 @@ class TestAddBugTool:
         """Should default priority to 'medium'."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -855,7 +855,7 @@ class TestAddBugTool:
 
     def test_add_bug_works_without_explicit_init(self, tmp_path, monkeypatch):
         """Should work without explicit init (global DB auto-creates)."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -871,7 +871,7 @@ class TestAddBugTool:
 
     def test_add_bug_requires_title(self, tmp_path):
         """Should fail if title not provided."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -885,7 +885,7 @@ class TestAddBugTool:
         """Should record creation timestamp."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -911,7 +911,7 @@ class TestGetBugTool:
         """Should retrieve bug by ID."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -933,7 +933,7 @@ class TestGetBugTool:
 
     def test_get_bug_not_found(self, tmp_path):
         """Should return error for non-existent bug."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -945,7 +945,7 @@ class TestGetBugTool:
 
     def test_get_bug_works_without_explicit_init(self, tmp_path, monkeypatch):
         """Should work without explicit init - just returns not found for missing bug."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -961,7 +961,7 @@ class TestGetBugTool:
 
     def test_get_bug_requires_bug_id(self, tmp_path):
         """Should fail if bug_id not provided."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -979,7 +979,7 @@ class TestUpdateBugTool:
         """Should update bug status and record in history."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1012,7 +1012,7 @@ class TestUpdateBugTool:
         """Should allow note-only updates without field changes."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1058,7 +1058,7 @@ class TestUpdateBugTool:
         """Should update priority."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1084,7 +1084,7 @@ class TestUpdateBugTool:
         """Should update tags."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1109,7 +1109,7 @@ class TestUpdateBugTool:
         """Should update related_bugs."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1141,7 +1141,7 @@ class TestUpdateBugTool:
         """Should allow reopening a closed bug."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1173,7 +1173,7 @@ class TestUpdateBugTool:
 
     def test_update_bug_not_found(self, tmp_path):
         """Should return error for non-existent bug."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1188,7 +1188,7 @@ class TestUpdateBugTool:
 
     def test_update_bug_requires_bug_id(self, tmp_path):
         """Should fail if bug_id not provided."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1206,7 +1206,7 @@ class TestCloseBugTool:
         """Should set bug status to closed."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1231,7 +1231,7 @@ class TestCloseBugTool:
         """Should record resolution note in history."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1256,7 +1256,7 @@ class TestCloseBugTool:
 
     def test_close_bug_requires_bug_id(self, tmp_path):
         """Should fail if bug_id not provided."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1268,7 +1268,7 @@ class TestCloseBugTool:
 
     def test_close_bug_not_found(self, tmp_path):
         """Should return error for non-existent bug."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1289,7 +1289,7 @@ class TestListBugsTool:
         """Should return all bugs when no filters provided."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1309,7 +1309,7 @@ class TestListBugsTool:
         """Should filter bugs by status."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1341,7 +1341,7 @@ class TestListBugsTool:
         """Should filter bugs by priority."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1365,7 +1365,7 @@ class TestListBugsTool:
         """Should filter bugs by tags (must have all specified tags)."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1400,7 +1400,7 @@ class TestListBugsTool:
         """Should return empty list when no bugs match."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1413,7 +1413,7 @@ class TestListBugsTool:
         """Should support combining status and priority filters."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
         plugin.execute("init_bugtracker", {"project_path": str(tmp_path)})
@@ -1449,7 +1449,7 @@ class TestProjectIndex:
         """Projects are tracked in global DB via bug project_id/project_path."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -1477,7 +1477,7 @@ class TestProjectIndex:
         """Each project's bugs are isolated by project_id."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -1503,7 +1503,7 @@ class TestProjectIndex:
         """The deprecated get_indexed_projects function still works."""
         import json
 
-        from src.plugins.bugtracker import get_indexed_projects, get_project_index_path
+        from mcp_secure_server.plugins.bugtracker import get_indexed_projects, get_project_index_path
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -1527,7 +1527,7 @@ class TestSearchBugsGlobal:
         """Should search bugs across all indexed projects."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -1571,7 +1571,7 @@ class TestSearchBugsGlobal:
         """Should filter by status across projects."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -1598,7 +1598,7 @@ class TestSearchBugsGlobal:
         """Should return empty list when no bugs match."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -1616,7 +1616,7 @@ class TestSearchBugsGlobal:
         """Should return empty list when no projects indexed."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -1635,7 +1635,7 @@ class TestBugTrackerIntegration:
         """Test complete bug lifecycle: create -> work -> close -> reopen."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
         project = tmp_path / "project"
@@ -1738,7 +1738,7 @@ class TestBugTrackerIntegration:
         """Test working with bugs across multiple projects."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -1794,7 +1794,7 @@ class TestBugTrackerIntegration:
         """Test creating and linking related bugs."""
         import json
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         project = tmp_path / "project"
         project.mkdir()
@@ -1861,7 +1861,7 @@ class TestGetStoreNoneGuard:
         """
         import pytest
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
 
@@ -1879,7 +1879,7 @@ class TestGetStoreNoneGuard:
         """Documents that get_bug will crash if _get_store returns None."""
         import pytest
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
 
@@ -1895,7 +1895,7 @@ class TestGetStoreNoneGuard:
         """Documents that update_bug will crash if _get_store returns None."""
         import pytest
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
 
@@ -1914,7 +1914,7 @@ class TestGetStoreNoneGuard:
         """Documents that list_bugs will crash if _get_store returns None."""
         import pytest
 
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         plugin = BugTrackerPlugin()
 
@@ -1936,7 +1936,7 @@ class TestPathTraversalProtection:
 
     def test_init_rejects_path_traversal_attempt(self, tmp_path, monkeypatch):
         """Should reject project_path with path traversal to nonexistent directory."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         # Set cwd to a temp directory
         monkeypatch.chdir(tmp_path)
@@ -1958,7 +1958,7 @@ class TestPathTraversalProtection:
 
     def test_init_allows_any_existing_directory(self, tmp_path, monkeypatch):
         """Should allow any existing directory path (global DB architecture)."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -1984,7 +1984,7 @@ class TestPathTraversalProtection:
         Unlike init_bugtracker, add_bug doesn't validate path existence.
         The path becomes metadata stored with the bug.
         """
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
         monkeypatch.chdir(tmp_path)
@@ -2002,7 +2002,7 @@ class TestPathTraversalProtection:
 
     def test_init_allows_subdirectory(self, tmp_path, monkeypatch):
         """Should allow paths within the current working directory."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
         monkeypatch.chdir(tmp_path)
@@ -2022,7 +2022,7 @@ class TestPathTraversalProtection:
 
     def test_init_allows_relative_subdirectory(self, tmp_path, monkeypatch):
         """Should allow relative paths to subdirectories."""
-        from src.plugins.bugtracker import BugTrackerPlugin
+        from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
 
         monkeypatch.setenv("HOME", str(tmp_path))
         monkeypatch.chdir(tmp_path)

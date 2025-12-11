@@ -12,7 +12,7 @@ from typing import Any
 
 import httpx
 
-from src.plugins.base import PluginBase, ToolDefinition, ToolResult
+from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
 
 # DuckDuckGo Lite endpoint (HTML-based, simpler to parse)
 DUCKDUCKGO_LITE_URL = "https://lite.duckduckgo.com/lite/"

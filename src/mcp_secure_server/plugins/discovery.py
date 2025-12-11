@@ -12,10 +12,10 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any, Literal
 
-from src.plugins.base import PluginBase, ToolDefinition, ToolResult
+from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
 
 if TYPE_CHECKING:
-    from src.plugins.dispatcher import ToolDispatcher
+    from mcp_secure_server.plugins.dispatcher import ToolDispatcher
 
 
 class ToolDiscoveryPlugin(PluginBase):

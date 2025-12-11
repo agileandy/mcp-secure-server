@@ -11,8 +11,8 @@ DEVELOPER GUIDE: Registering New Plugins
 To add a new plugin to the server, follow these steps:
 
 1. CREATE YOUR PLUGIN
-   Create a new file in src/plugins/ implementing the PluginBase interface.
-   See src/plugins/base.py for the interface and a detailed example.
+   Create a new file in mcp_secure_server/plugins/ implementing the PluginBase interface.
+   See mcp_secure_server/plugins/base.py for the interface and a detailed example.
 
 2. UPDATE SECURITY POLICY
    Edit config/policy.yaml to allow any required network access, set rate
@@ -26,7 +26,7 @@ EXAMPLE: Adding a Database Query Plugin
 
 Step 1: Import the plugin (add near other imports):
 
-    from src.plugins.dbquery import DBQueryPlugin
+    from mcp_secure_server.plugins.dbquery import DBQueryPlugin
 
 Step 2: Register the plugin (add after other register_plugin calls):
 
@@ -73,10 +73,10 @@ import argparse
 import sys
 from pathlib import Path
 
-from src.plugins.bugtracker import BugTrackerPlugin
-from src.plugins.websearch import WebSearchPlugin
-from src.protocol.transport import StdioTransport
-from src.server import MCPServer
+from mcp_secure_server.plugins.bugtracker import BugTrackerPlugin
+from mcp_secure_server.plugins.websearch import WebSearchPlugin
+from mpc_secure_server.protocol.transport import StdioTransport
+from mpc_secure_server.server import MCPServer
 
 
 def main() -> int:
@@ -122,7 +122,7 @@ def main() -> int:
     # DEVELOPER: Add your custom plugins here using server.register_plugin()
     #
     # Example:
-    #     from src.plugins.dbquery import DBQueryPlugin
+    #     from mcp_secure_server.plugins.dbquery import DBQueryPlugin
     #     server.register_plugin(DBQueryPlugin(connection_string=os.environ["DB_CONN"]))
     #
     # Each plugin's tools will automatically appear in the MCP tools/list response.
@@ -150,14 +150,14 @@ def main() -> int:
 
     except KeyboardInterrupt:
         transport.log("Interrupted, shutting down")
-        return 130  # Standard exit code for SIGINT
+        sys.exit(130)  # Standard exit code for SIGINT
 
     except Exception as e:
         transport.log(f"Error: {e}")
-        return 1
+        return sys.exit(1)
 
-    return 0
+    return
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

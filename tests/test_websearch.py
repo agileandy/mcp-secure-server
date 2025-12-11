@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 
-from src.plugins.base import PluginBase
-from src.plugins.websearch import WebSearchPlugin
+from mcp_secure_server.plugins.base import PluginBase
+from mcp_secure_server.plugins.websearch import WebSearchPlugin
 
 
 class TestWebSearchPlugin:

@@ -16,7 +16,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 
 if TYPE_CHECKING:
-    from src.security.policy import SecurityPolicy
+    from mcp_secure_server.security.policy import SecurityPolicy
 
 
 class ValidationError(Exception):

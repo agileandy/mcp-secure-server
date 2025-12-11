@@ -5,8 +5,8 @@ import tempfile
 
 import pytest
 
-from src.security.policy import SecurityPolicy
-from src.security.validator import (
+from mcp_secure_server.security.policy import SecurityPolicy
+from mcp_secure_server.security.validator import (
     InputValidator,
     ValidationError,
     sanitize_command,

@@ -6,9 +6,9 @@ import json
 
 import pytest
 
-from src.plugins.base import PluginBase, ToolDefinition, ToolResult
-from src.plugins.discovery import ToolDiscoveryPlugin
-from src.plugins.dispatcher import ToolDispatcher
+from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
+from mcp_secure_server.plugins.discovery import ToolDiscoveryPlugin
+from mcp_secure_server.plugins.dispatcher import ToolDispatcher
 
 
 class TestToolDiscoveryPluginInterface:

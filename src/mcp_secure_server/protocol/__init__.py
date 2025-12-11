@@ -1,6 +1,6 @@
 """MCP Protocol layer for JSON-RPC communication."""
 
-from src.protocol.jsonrpc import (
+from mcp_secure_server.protocol.jsonrpc import (
     JsonRpcError,
     JsonRpcNotification,
     JsonRpcRequest,
@@ -9,14 +9,14 @@ from src.protocol.jsonrpc import (
     format_response,
     parse_message,
 )
-from src.protocol.lifecycle import (
+from mcp_secure_server.protocol.lifecycle import (
     MCP_PROTOCOL_VERSION,
     LifecycleManager,
     LifecycleState,
     ProtocolError,
 )
-from src.protocol.tools import ToolsCallResult, ToolsHandler, ToolsListResult
-from src.protocol.transport import StdioTransport
+from mcp_secure_server.protocol.tools import ToolsCallResult, ToolsHandler, ToolsListResult
+from mcp_secure_server.protocol.transport import StdioTransport
 
 __all__ = [
     "JsonRpcError",

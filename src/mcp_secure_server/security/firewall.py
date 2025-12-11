@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from cachetools import TTLCache
 
 if TYPE_CHECKING:
-    from src.security.policy import SecurityPolicy
+    from mcp_secure_server.security.policy import SecurityPolicy
 
 
 class SecurityError(Exception):

@@ -12,12 +12,12 @@ you need to:
 
 1. CREATE YOUR PLUGIN FILE
    --------------------------
-   Create a new file in src/plugins/ (e.g., src/plugins/dbquery.py)
+   Create a new file in mcp_secure_server/plugins/ (e.g., mcp_secure_server/plugins/dbquery.py)
 
    Example for a database query plugin:
 
    ```python
-   from src.plugins.base import PluginBase, ToolDefinition, ToolResult
+   from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
 
    class DBQueryPlugin(PluginBase):
        def __init__(self, connection_string: str):
@@ -142,7 +142,7 @@ you need to:
    Import and register your plugin in main.py:
 
    ```python
-   from src.plugins.dbquery import DBQueryPlugin
+   from mcp_secure_server.plugins.dbquery import DBQueryPlugin
 
    # In main():
    server.register_plugin(DBQueryPlugin(

@@ -16,7 +16,7 @@ Plugins extend the server with new tools that can be called via the MCP protocol
 ### 1. Create the Plugin Class
 
 ```python
-from src.plugins.base import PluginBase, ToolDefinition, ToolResult
+from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
 
 class CalculatorPlugin(PluginBase):
     """A simple calculator plugin."""
@@ -347,7 +347,7 @@ A more complete example that calls an external API:
 
 ```python
 import httpx
-from src.plugins.base import PluginBase, ToolDefinition, ToolResult
+from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
 
 class WeatherPlugin(PluginBase):
     """Weather information plugin."""
@@ -454,7 +454,7 @@ tools:
 ### handler.py
 
 ```python
-from src.plugins.base import PluginBase, ToolDefinition, ToolResult
+from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
 
 class Plugin(PluginBase):
     # Must be named "Plugin"

@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.plugins.dispatcher import ToolDispatcher, ToolExecutionError, ToolNotFoundError
+from mcp_secure_server.plugins.dispatcher import ToolDispatcher, ToolExecutionError, ToolNotFoundError
 
 
 @dataclass

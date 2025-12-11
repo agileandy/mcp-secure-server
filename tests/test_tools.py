@@ -1,8 +1,8 @@
 """Tests for tools/list and tools/call handlers."""
 
-from src.plugins.base import PluginBase, ToolDefinition, ToolResult
-from src.plugins.dispatcher import ToolDispatcher
-from src.protocol.tools import ToolsCallResult, ToolsHandler, ToolsListResult
+from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
+from mcp_secure_server.plugins.dispatcher import ToolDispatcher
+from mcp_secure_server.protocol.tools import ToolsCallResult, ToolsHandler, ToolsListResult
 
 
 class MockPlugin(PluginBase):

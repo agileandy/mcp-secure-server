@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from src.plugins.base import PluginBase
+from mcp_secure_server.plugins.base import PluginBase
 
 
 class PluginLoadError(Exception):

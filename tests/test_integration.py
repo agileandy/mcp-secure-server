@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.plugins.websearch import WebSearchPlugin
-from src.server import MCPServer
+from mcp_secure_server.plugins.websearch import WebSearchPlugin
+from mcp_secure_server.server import MCPServer
 
 FULL_POLICY = """
 version: "1.0"
@@ -133,7 +133,7 @@ class TestServerWithWebSearch:
         web_search = next(t for t in tools if t["name"] == "web_search")
         assert "query" in web_search["inputSchema"]["properties"]
 
-    @patch("src.plugins.websearch.httpx")
+    @patch("mcp_secure_server.plugins.websearch.httpx")
     def test_tools_call_websearch(self, mock_httpx, initialized_server: MCPServer):
         """Should execute web search through the full stack."""
         # Mock the HTTP response
@@ -223,7 +223,7 @@ class TestFullMessageFlow:
         assert len(list_result["result"]["tools"]) == 3
 
         # Step 4: Call a tool (mocked)
-        with patch("src.plugins.websearch.httpx") as mock_httpx:
+        with patch("mcp_secure_server.plugins.websearch.httpx") as mock_httpx:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.text = "<html><body></body></html>"

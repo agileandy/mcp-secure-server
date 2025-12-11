@@ -8,10 +8,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from src.plugins.base import PluginBase
-from src.plugins.discovery import ToolDiscoveryPlugin
-from src.plugins.dispatcher import ToolDispatcher
-from src.protocol.jsonrpc import (
+from mcp_secure_server.plugins.base import PluginBase
+from mcp_secure_server.plugins.discovery import ToolDiscoveryPlugin
+from mcp_secure_server.plugins.dispatcher import ToolDispatcher
+from mcp_secure_server.protocol.jsonrpc import (
     INTERNAL_ERROR,
     METHOD_NOT_FOUND,
     JsonRpcError,
@@ -21,10 +21,10 @@ from src.protocol.jsonrpc import (
     format_response,
     parse_message,
 )
-from src.protocol.lifecycle import LifecycleManager, ProtocolError
-from src.protocol.tools import ToolsHandler
-from src.security.engine import RateLimitExceeded, SecurityEngine
-from src.security.policy import SecurityPolicy, load_policy
+from mcp_secure_server.protocol.lifecycle import LifecycleManager, ProtocolError
+from mcp_secure_server.protocol.tools import ToolsHandler
+from mcp_secure_server.security.engine import RateLimitExceeded, SecurityEngine
+from mcp_secure_server.security.policy import SecurityPolicy, load_policy
 
 
 class MCPServer:

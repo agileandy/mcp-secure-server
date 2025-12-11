@@ -10,7 +10,7 @@ import time
 
 import pytest
 
-from src.security.ratelimiter import RateLimiter, RateLimitExceeded
+from mcp_secure_server.security.ratelimiter import RateLimiter, RateLimitExceeded
 
 
 class TestRateLimiterInit:

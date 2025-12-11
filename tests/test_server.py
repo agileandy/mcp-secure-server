@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from src.plugins.base import PluginBase, ToolDefinition, ToolResult
-from src.server import MCPServer
+from mcp_secure_server.plugins.base import PluginBase, ToolDefinition, ToolResult
+from mcp_secure_server.server import MCPServer
 
 MINIMAL_POLICY = """
 version: "1.0"

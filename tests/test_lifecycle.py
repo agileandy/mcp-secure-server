@@ -4,13 +4,13 @@ import io
 
 import pytest
 
-from src.protocol.lifecycle import (
+from mcp_secure_server.protocol.lifecycle import (
     MCP_PROTOCOL_VERSION,
     LifecycleManager,
     LifecycleState,
     ProtocolError,
 )
-from src.protocol.transport import StdioTransport
+from mcp_secure_server.protocol.transport import StdioTransport
 
 
 class TestStdioTransport:
