@@ -80,6 +80,14 @@ class ToolDiscoveryPlugin(PluginBase):
                             "description": "Level of detail to return (default: 'summary')",
                             "default": "summary",
                         },
+                        "include_unavailable": {
+                            "type": "boolean",
+                            "description": (
+                                "Include tools from unavailable plugins (default: false). "
+                                "When true, results include availability status."
+                            ),
+                            "default": False,
+                        },
                     },
                 },
             ),
@@ -120,7 +128,7 @@ class ToolDiscoveryPlugin(PluginBase):
         """Search for tools by query and/or category.
 
         Args:
-            arguments: Search parameters (query, category, detail_level).
+            arguments: Search parameters (query, category, detail_level, include_unavailable).
 
         Returns:
             ToolResult with matching tools.
@@ -128,14 +136,23 @@ class ToolDiscoveryPlugin(PluginBase):
         query = arguments.get("query", "").lower()
         category = arguments.get("category", "").lower()
         detail_level: Literal["name", "summary", "full"] = arguments.get("detail_level", "summary")
+        include_unavailable = arguments.get("include_unavailable", False)
 
         # Collect all tools with their plugin info
-        matching_tools = []
+        matching_tools: list[tuple[ToolDefinition, bool, str]] = []  # (tool, available, hint)
         for plugin in self._dispatcher._plugins:
             plugin_name = plugin.name.lower()
 
             # Filter by category if specified
             if category and plugin_name != category:
+                continue
+
+            # Check availability
+            is_available = plugin.is_available()
+            availability_hint = plugin.availability_hint()
+
+            # Skip unavailable plugins unless include_unavailable is True
+            if not is_available and not include_unavailable:
                 continue
 
             for tool in plugin.get_tools():
@@ -146,17 +163,39 @@ class ToolDiscoveryPlugin(PluginBase):
                     if not (name_match or desc_match):
                         continue
 
-                matching_tools.append(tool)
+                matching_tools.append((tool, is_available, availability_hint))
 
         # Format output based on detail level
         if detail_level == "name":
-            result = [tool.name for tool in matching_tools]
+            result = [tool.name for tool, _, _ in matching_tools]
         elif detail_level == "summary":
-            result = [
-                {"name": tool.name, "description": tool.description} for tool in matching_tools
-            ]
+            if include_unavailable:
+                result = [
+                    {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "available": available,
+                        "availability_hint": hint if not available else "",
+                    }
+                    for tool, available, hint in matching_tools
+                ]
+            else:
+                result = [
+                    {"name": tool.name, "description": tool.description}
+                    for tool, _, _ in matching_tools
+                ]
         else:  # full
-            result = [tool.to_dict() for tool in matching_tools]
+            if include_unavailable:
+                result = [
+                    {
+                        **tool.to_dict(),
+                        "available": available,
+                        "availability_hint": hint if not available else "",
+                    }
+                    for tool, available, hint in matching_tools
+                ]
+            else:
+                result = [tool.to_dict() for tool, _, _ in matching_tools]
 
         return ToolResult(
             content=[{"type": "text", "text": json.dumps(result, indent=2)}],
@@ -167,17 +206,21 @@ class ToolDiscoveryPlugin(PluginBase):
         """List all plugin categories with tool counts.
 
         Returns:
-            ToolResult with category information.
+            ToolResult with category information including availability.
         """
         categories = []
         for plugin in self._dispatcher._plugins:
             tools = plugin.get_tools()
+            is_available = plugin.is_available()
+            hint = plugin.availability_hint()
             categories.append(
                 {
                     "category": plugin.name,
                     "version": plugin.version,
                     "tool_count": len(tools),
                     "tools": [tool.name for tool in tools],
+                    "available": is_available,
+                    "availability_hint": hint if not is_available else "",
                 }
             )
 

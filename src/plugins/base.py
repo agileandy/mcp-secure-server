@@ -300,3 +300,26 @@ class PluginBase(ABC):
         The default implementation does nothing.
         """
         pass
+
+    def is_available(self) -> bool:
+        """Check if the plugin is available for use.
+
+        Override this method to check for required environment variables,
+        API keys, or other prerequisites. Plugins that return False will
+        be filtered out of search results by default.
+
+        Returns:
+            True if the plugin is ready to use, False otherwise.
+        """
+        return True
+
+    def availability_hint(self) -> str:
+        """Return a hint for how to make the plugin available.
+
+        Override this method to provide guidance when is_available() returns
+        False. For example: "Set FIGMA_API_TOKEN environment variable."
+
+        Returns:
+            A hint string, or empty string if no hint is available.
+        """
+        return ""
