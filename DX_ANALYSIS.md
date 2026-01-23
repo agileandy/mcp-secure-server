@@ -73,7 +73,7 @@ The Tripoli MCP server is a well-architected security-first MCP server with soli
 ### Improvement: Create CONTRIBUTING.md with Quick Start
 **Priority**: P2 (improves onboarding)
 
-Create `/Users/andyspamer/conductor/workspaces/mcp-secure-server/tripoli/CONTRIBUTING.md`:
+Create `CONTRIBUTING.md`:
 
 ```markdown
 # Contributing to Tripoli MCP Server
