@@ -643,10 +643,10 @@ uv run python main.py --validate-policy config/policy.yaml
 ### For New Plugin Developers
 
 **Key files to understand**:
-1. `/Users/andyspamer/conductor/workspaces/mcp-secure-server/tripoli/docs/PLUGIN_DEVELOPMENT.md` - plugin interface
-2. `/Users/andyspamer/conductor/workspaces/mcp-secure-server/tripoli/config/policy.yaml` - security rules for your plugin
-3. `/Users/andyspamer/conductor/workspaces/mcp-secure-server/tripoli/tests/test_plugins.py` - testing patterns (copy MockPlugin)
-4. `/Users/andyspamer/conductor/workspaces/mcp-secure-server/tripoli/src/plugins/websearch.py` - reference implementation
+1. `docs/PLUGIN_DEVELOPMENT.md` - plugin interface
+2. `config/policy.yaml` - security rules for your plugin
+3. `tests/test_plugins.py` - testing patterns (copy MockPlugin)
+4. `src/plugins/websearch.py` - reference implementation
 
 **Workflow**:
 1. Create `src/plugins/my_feature.py` with `PluginBase` + 3 methods
