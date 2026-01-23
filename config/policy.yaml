@@ -61,7 +61,7 @@ network:
     - "192.168.0.0/16"
     - "::1/128"
     - "fe80::/10"
-  
+
   # Explicitly allowed external endpoints (for tools like web search)
   # ---------------------------------------------------------------------------
   # EXAMPLE: Adding database access
@@ -93,11 +93,11 @@ network:
     - host: "lite.duckduckgo.com"
       ports: [443]
       description: "DuckDuckGo Lite"
-  
+
   # Block these ports even on local network
   blocked_ports:
     - 22    # SSH (prevent lateral movement)
-  
+
   # DNS settings
   allow_dns: true  # Required for allowed_endpoints resolution
   dns_allowlist:
@@ -112,7 +112,7 @@ filesystem:
     - "${HOME}/workspace/**"
     - "${HOME}/Dev-Space/**"
     - "/tmp/mcp-workspace/**"
-  
+
   # Explicitly denied (takes precedence over allowed)
   denied_paths:
     - "**/.ssh/**"
@@ -173,17 +173,17 @@ tools:
     close_bug: 60          # Closing bugs (delegates to update)
     list_bugs: 60          # Listing is common
     search_bugs_global: 30 # Cross-project search is heavier
-  
+
   # Timeout in seconds
   timeout: 30
 
 audit:
   # Log file location
   log_file: "${HOME}/.mcp-secure/audit.log"
-  
+
   # What to log
   log_level: "INFO"
-  
+
   # Include these in audit log
   include:
     - timestamp

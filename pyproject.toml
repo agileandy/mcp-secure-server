@@ -66,6 +66,17 @@ exclude_lines = [
     "raise NotImplementedError",
 ]
 
+[tool.pyright]
+typeCheckingMode = "standard"
+include = ["src"]
+exclude = ["tests", ".venv", "build"]
+reportUnusedImport = true
+reportUnusedVariable = true
+reportConstantRedefinition = true
+reportDuplicateImport = true
+reportInvalidTypeForm = true
+reportMissingTypeStubs = "warning"
+
 [dependency-groups]
 dev = [
     "pyright>=1.1.407",
