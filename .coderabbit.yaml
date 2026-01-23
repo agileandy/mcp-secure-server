@@ -10,5 +10,7 @@ reviews:
       instructions: "Review for Python best practices, type hints, and security issues"
     - path: "*.py"
       instructions: "Review for Python best practices, type hints, and security issues"
+    - path: "*.py"
+      instructions: "Review for Python best practices, type hints, and security issues"
     - path: "tests/**/*.py"
       instructions: "Ensure tests are comprehensive and follow pytest conventions"
