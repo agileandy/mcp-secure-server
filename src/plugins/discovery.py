@@ -68,11 +68,19 @@ class ToolDiscoveryPlugin(PluginBase):
                     "properties": {
                         "query": {
                             "type": "string",
-                            "description": "Keyword to search for in tool names and descriptions",
+                            "description": (
+                                "Keyword to search for in tool names, descriptions, and aliases"
+                            ),
                         },
                         "category": {
                             "type": "string",
                             "description": "Filter by plugin category (e.g., 'bugtracker')",
+                        },
+                        "intent": {
+                            "type": "string",
+                            "description": (
+                                "Filter by intent category (e.g., 'bug tracking', 'research')"
+                            ),
                         },
                         "detail_level": {
                             "type": "string",
@@ -128,13 +136,15 @@ class ToolDiscoveryPlugin(PluginBase):
         """Search for tools by query and/or category.
 
         Args:
-            arguments: Search parameters (query, category, detail_level, include_unavailable).
+            arguments: Search parameters (query, category, intent,
+                detail_level, include_unavailable).
 
         Returns:
             ToolResult with matching tools.
         """
         query = arguments.get("query", "").lower()
         category = arguments.get("category", "").lower()
+        intent = arguments.get("intent", "").lower()
         detail_level: Literal["name", "summary", "full"] = arguments.get("detail_level", "summary")
         include_unavailable = arguments.get("include_unavailable", False)
 
@@ -156,11 +166,18 @@ class ToolDiscoveryPlugin(PluginBase):
                 continue
 
             for tool in plugin.get_tools():
-                # Filter by query if specified
+                # Filter by intent if specified
+                if intent:
+                    intent_match = any(intent in cat.lower() for cat in tool.intent_categories)
+                    if not intent_match:
+                        continue
+
+                # Filter by query if specified (search name, description, AND aliases)
                 if query:
                     name_match = query in tool.name.lower()
                     desc_match = query in tool.description.lower()
-                    if not (name_match or desc_match):
+                    alias_match = any(query in alias.lower() for alias in tool.aliases)
+                    if not (name_match or desc_match or alias_match):
                         continue
 
                 matching_tools.append((tool, is_available, availability_hint))

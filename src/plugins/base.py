@@ -185,7 +185,7 @@ you need to:
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -196,6 +196,8 @@ class ToolDefinition:
     name: str
     description: str
     input_schema: dict[str, Any]
+    aliases: list[str] = field(default_factory=list)
+    intent_categories: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to MCP tool format.

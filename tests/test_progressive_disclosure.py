@@ -287,3 +287,237 @@ class TestListCategoriesAvailability:
         assert available_cat.get("available") is True
         assert unavailable_cat.get("available") is False
         assert "Missing configuration" in unavailable_cat.get("availability_hint", "")
+
+
+# =============================================================================
+# P1: Semantic/Alias Search Tests
+# =============================================================================
+
+
+class TestToolDefinitionAliases:
+    """Tests for ToolDefinition aliases and intent_categories fields."""
+
+    def test_tool_definition_has_aliases_field(self):
+        """ToolDefinition should have an optional aliases field."""
+        tool = ToolDefinition(
+            name="add_bug",
+            description="Add a new bug to the tracker",
+            input_schema={"type": "object"},
+            aliases=["create ticket", "report bug", "log issue"],
+        )
+        assert tool.aliases == ["create ticket", "report bug", "log issue"]
+
+    def test_tool_definition_aliases_defaults_to_empty_list(self):
+        """aliases should default to empty list."""
+        tool = ToolDefinition(
+            name="simple_tool",
+            description="A simple tool",
+            input_schema={"type": "object"},
+        )
+        assert tool.aliases == []
+
+    def test_tool_definition_has_intent_categories_field(self):
+        """ToolDefinition should have an optional intent_categories field."""
+        tool = ToolDefinition(
+            name="add_bug",
+            description="Add a new bug to the tracker",
+            input_schema={"type": "object"},
+            intent_categories=["bug tracking", "issue management"],
+        )
+        assert tool.intent_categories == ["bug tracking", "issue management"]
+
+    def test_tool_definition_intent_categories_defaults_to_empty_list(self):
+        """intent_categories should default to empty list."""
+        tool = ToolDefinition(
+            name="simple_tool",
+            description="A simple tool",
+            input_schema={"type": "object"},
+        )
+        assert tool.intent_categories == []
+
+
+class TestSearchToolsAliasMatching:
+    """Tests for alias matching in search_tools."""
+
+    @pytest.fixture
+    def dispatcher_with_aliases(self):
+        """Create dispatcher with plugins that have aliases."""
+        dispatcher = ToolDispatcher()
+
+        class BugtrackerPlugin(PluginBase):
+            @property
+            def name(self) -> str:
+                return "bugtracker"
+
+            @property
+            def version(self) -> str:
+                return "1.0.0"
+
+            def get_tools(self) -> list[ToolDefinition]:
+                return [
+                    ToolDefinition(
+                        name="add_bug",
+                        description="Add a new bug to the tracker",
+                        input_schema={"type": "object", "properties": {}},
+                        aliases=["create ticket", "report bug", "log issue"],
+                        intent_categories=["bug tracking", "issue management"],
+                    ),
+                    ToolDefinition(
+                        name="list_bugs",
+                        description="List all bugs",
+                        input_schema={"type": "object", "properties": {}},
+                        aliases=["show tickets", "view issues"],
+                        intent_categories=["bug tracking"],
+                    ),
+                ]
+
+            def execute(self, tool_name: str, arguments: dict[str, Any]) -> ToolResult:
+                return ToolResult(content=[{"type": "text", "text": "ok"}])
+
+        class WebsearchPlugin(PluginBase):
+            @property
+            def name(self) -> str:
+                return "websearch"
+
+            @property
+            def version(self) -> str:
+                return "1.0.0"
+
+            def get_tools(self) -> list[ToolDefinition]:
+                return [
+                    ToolDefinition(
+                        name="web_search",
+                        description="Search the web",
+                        input_schema={"type": "object", "properties": {}},
+                        aliases=["google", "search online", "look up"],
+                        intent_categories=["research", "information retrieval"],
+                    ),
+                ]
+
+            def execute(self, tool_name: str, arguments: dict[str, Any]) -> ToolResult:
+                return ToolResult(content=[{"type": "text", "text": "ok"}])
+
+        dispatcher.register_plugin(BugtrackerPlugin())
+        dispatcher.register_plugin(WebsearchPlugin())
+        return dispatcher
+
+    def test_search_tools_matches_aliases(self, dispatcher_with_aliases):
+        """search_tools should find tools by alias."""
+        plugin = ToolDiscoveryPlugin(dispatcher_with_aliases)
+        result = plugin.execute("search_tools", {"query": "create ticket"})
+
+        assert result.is_error is False
+        tools = json.loads(result.content[0]["text"])
+        tool_names = [t["name"] for t in tools]
+        assert "add_bug" in tool_names
+
+    def test_search_tools_alias_match_case_insensitive(self, dispatcher_with_aliases):
+        """Alias matching should be case-insensitive."""
+        plugin = ToolDiscoveryPlugin(dispatcher_with_aliases)
+        result = plugin.execute("search_tools", {"query": "CREATE TICKET"})
+
+        assert result.is_error is False
+        tools = json.loads(result.content[0]["text"])
+        tool_names = [t["name"] for t in tools]
+        assert "add_bug" in tool_names
+
+    def test_search_tools_partial_alias_match(self, dispatcher_with_aliases):
+        """Alias matching should work with partial matches."""
+        plugin = ToolDiscoveryPlugin(dispatcher_with_aliases)
+        result = plugin.execute("search_tools", {"query": "ticket"})
+
+        assert result.is_error is False
+        tools = json.loads(result.content[0]["text"])
+        tool_names = [t["name"] for t in tools]
+        # Should match both "create ticket" and "show tickets"
+        assert "add_bug" in tool_names
+        assert "list_bugs" in tool_names
+
+
+class TestSearchToolsIntentFiltering:
+    """Tests for intent-based filtering in search_tools."""
+
+    @pytest.fixture
+    def dispatcher_with_intents(self):
+        """Create dispatcher with plugins that have intent categories."""
+        dispatcher = ToolDispatcher()
+
+        class BugtrackerPlugin(PluginBase):
+            @property
+            def name(self) -> str:
+                return "bugtracker"
+
+            @property
+            def version(self) -> str:
+                return "1.0.0"
+
+            def get_tools(self) -> list[ToolDefinition]:
+                return [
+                    ToolDefinition(
+                        name="add_bug",
+                        description="Add a new bug",
+                        input_schema={"type": "object"},
+                        intent_categories=["bug tracking", "issue management"],
+                    ),
+                ]
+
+            def execute(self, tool_name: str, arguments: dict[str, Any]) -> ToolResult:
+                return ToolResult(content=[{"type": "text", "text": "ok"}])
+
+        class WebsearchPlugin(PluginBase):
+            @property
+            def name(self) -> str:
+                return "websearch"
+
+            @property
+            def version(self) -> str:
+                return "1.0.0"
+
+            def get_tools(self) -> list[ToolDefinition]:
+                return [
+                    ToolDefinition(
+                        name="web_search",
+                        description="Search the web",
+                        input_schema={"type": "object"},
+                        intent_categories=["research", "information retrieval"],
+                    ),
+                ]
+
+            def execute(self, tool_name: str, arguments: dict[str, Any]) -> ToolResult:
+                return ToolResult(content=[{"type": "text", "text": "ok"}])
+
+        dispatcher.register_plugin(BugtrackerPlugin())
+        dispatcher.register_plugin(WebsearchPlugin())
+        return dispatcher
+
+    def test_search_tools_filters_by_intent(self, dispatcher_with_intents):
+        """search_tools should filter by intent category."""
+        plugin = ToolDiscoveryPlugin(dispatcher_with_intents)
+        result = plugin.execute("search_tools", {"intent": "bug tracking"})
+
+        assert result.is_error is False
+        tools = json.loads(result.content[0]["text"])
+        tool_names = [t["name"] for t in tools]
+        assert "add_bug" in tool_names
+        assert "web_search" not in tool_names
+
+    def test_search_tools_intent_case_insensitive(self, dispatcher_with_intents):
+        """Intent filtering should be case-insensitive."""
+        plugin = ToolDiscoveryPlugin(dispatcher_with_intents)
+        result = plugin.execute("search_tools", {"intent": "BUG TRACKING"})
+
+        assert result.is_error is False
+        tools = json.loads(result.content[0]["text"])
+        tool_names = [t["name"] for t in tools]
+        assert "add_bug" in tool_names
+
+    def test_search_tools_intent_partial_match(self, dispatcher_with_intents):
+        """Intent filtering should work with partial matches."""
+        plugin = ToolDiscoveryPlugin(dispatcher_with_intents)
+        result = plugin.execute("search_tools", {"intent": "research"})
+
+        assert result.is_error is False
+        tools = json.loads(result.content[0]["text"])
+        tool_names = [t["name"] for t in tools]
+        assert "web_search" in tool_names
+        assert "add_bug" not in tool_names
