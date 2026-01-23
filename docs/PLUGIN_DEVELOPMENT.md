@@ -20,15 +20,15 @@ from src.plugins.base import PluginBase, ToolDefinition, ToolResult
 
 class CalculatorPlugin(PluginBase):
     """A simple calculator plugin."""
-    
+
     @property
     def name(self) -> str:
         return "calculator"
-    
+
     @property
     def version(self) -> str:
         return "1.0.0"
-    
+
     def get_tools(self) -> list[ToolDefinition]:
         return [
             ToolDefinition(
@@ -56,7 +56,7 @@ class CalculatorPlugin(PluginBase):
                 },
             ),
         ]
-    
+
     def execute(self, tool_name: str, arguments: dict) -> ToolResult:
         if tool_name == "add":
             result = arguments["a"] + arguments["b"]
@@ -112,18 +112,18 @@ class PluginBase(ABC):
     def name(self) -> str:
         """Return the plugin identifier."""
         pass
-    
+
     @property
     @abstractmethod
     def version(self) -> str:
         """Return the plugin version."""
         pass
-    
+
     @abstractmethod
     def get_tools(self) -> list[ToolDefinition]:
         """Return tool definitions provided by this plugin."""
         pass
-    
+
     @abstractmethod
     def execute(self, tool_name: str, arguments: dict) -> ToolResult:
         """Execute a tool."""
@@ -140,7 +140,7 @@ class ToolDefinition:
     name: str                    # Unique tool identifier
     description: str             # Human-readable description
     input_schema: dict[str, Any] # JSON Schema for input validation
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to MCP tool format."""
 ```
@@ -154,7 +154,7 @@ Represents the result of a tool execution.
 class ToolResult:
     content: list[dict[str, Any]]  # Result content blocks
     is_error: bool = False          # Whether this is an error result
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to MCP result format."""
 ```
@@ -329,12 +329,12 @@ class TestMyPlugin:
         plugin = MyPlugin()
         tools = plugin.get_tools()
         assert len(tools) > 0
-    
+
     def test_executes_tool(self):
         plugin = MyPlugin()
         result = plugin.execute("my_tool", {"input": "test"})
         assert result.is_error is False
-    
+
     def test_handles_unknown_tool(self):
         plugin = MyPlugin()
         result = plugin.execute("unknown", {})
@@ -351,17 +351,17 @@ from src.plugins.base import PluginBase, ToolDefinition, ToolResult
 
 class WeatherPlugin(PluginBase):
     """Weather information plugin."""
-    
+
     API_URL = "https://api.weather.example.com/v1"
-    
+
     @property
     def name(self) -> str:
         return "weather"
-    
+
     @property
     def version(self) -> str:
         return "1.0.0"
-    
+
     def get_tools(self) -> list[ToolDefinition]:
         return [
             ToolDefinition(
@@ -384,17 +384,17 @@ class WeatherPlugin(PluginBase):
                 },
             ),
         ]
-    
+
     def execute(self, tool_name: str, arguments: dict) -> ToolResult:
         if tool_name != "get_weather":
             return ToolResult(
                 content=[{"type": "text", "text": f"Unknown tool: {tool_name}"}],
                 is_error=True,
             )
-        
+
         city = arguments["city"]
         units = arguments.get("units", "celsius")
-        
+
         try:
             response = httpx.get(
                 f"{self.API_URL}/weather",
@@ -403,16 +403,16 @@ class WeatherPlugin(PluginBase):
             )
             response.raise_for_status()
             data = response.json()
-            
+
             text = (
                 f"Weather in {city}:\n"
                 f"Temperature: {data['temp']}°{'C' if units == 'celsius' else 'F'}\n"
                 f"Conditions: {data['conditions']}\n"
                 f"Humidity: {data['humidity']}%"
             )
-            
+
             return ToolResult(content=[{"type": "text", "text": text}])
-            
+
         except httpx.HTTPError as e:
             return ToolResult(
                 content=[{"type": "text", "text": f"API error: {e}"}],

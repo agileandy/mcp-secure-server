@@ -101,17 +101,17 @@ network:
     - "127.0.0.0/8"
     - "10.0.0.0/8"
     - "192.168.0.0/16"
-  
+
   # Explicitly allowed external endpoints
   allowed_endpoints:
     - host: "lite.duckduckgo.com"
       ports: [443]
       description: "DuckDuckGo search"
-  
+
   # Blocked ports (even on local network)
   blocked_ports:
-    - 22  # SSH  
-  
+    - 22  # SSH
+
   # DNS settings
   allow_dns: true
   dns_allowlist:
@@ -126,7 +126,7 @@ filesystem:
   allowed_paths:
     - "${HOME}/projects/**"
     - "/tmp/mcp-workspace/**"
-  
+
   # Denied paths (takes precedence)
   denied_paths:
     - "**/.ssh/**"
@@ -143,7 +143,7 @@ tools:
   rate_limits:
     default: 60
     web_search: 20
-  
+
   # Execution timeout
   timeout: 30
 ```
@@ -528,11 +528,11 @@ class MyPlugin(PluginBase):
     @property
     def name(self) -> str:
         return "my_plugin"
-    
+
     @property
     def version(self) -> str:
         return "1.0.0"
-    
+
     def get_tools(self) -> list[ToolDefinition]:
         return [
             ToolDefinition(
@@ -547,7 +547,7 @@ class MyPlugin(PluginBase):
                 },
             )
         ]
-    
+
     def execute(self, tool_name: str, arguments: dict) -> ToolResult:
         if tool_name == "my_tool":
             result = do_something(arguments["input"])
@@ -680,12 +680,12 @@ fn main() {
     let stdin = io::stdin();
     let line = stdin.lock().lines().next().unwrap().unwrap();
     let request: Request = serde_json::from_str(&line).unwrap();
-    
+
     let result = match request.tool.as_str() {
         "calculate_hash" => calculate_hash(request.arguments),
         _ => Err(format!("Unknown tool: {}", request.tool)),
     };
-    
+
     let response = match result {
         Ok(text) => Response {
             content: vec![Content { content_type: "text".into(), text }],
@@ -696,7 +696,7 @@ fn main() {
             is_error: true,
         },
     };
-    
+
     println!("{}", serde_json::to_string(&response).unwrap());
 }
 ```
@@ -710,7 +710,7 @@ const rl = readline.createInterface({ input: process.stdin });
 
 rl.on('line', (line) => {
   const request = JSON.parse(line);
-  
+
   let response;
   try {
     const result = handleTool(request.tool, request.arguments);
@@ -724,7 +724,7 @@ rl.on('line', (line) => {
       isError: true
     };
   }
-  
+
   console.log(JSON.stringify(response));
   process.exit(0);
 });

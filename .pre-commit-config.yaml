@@ -1,0 +1,40 @@
+# Pre-commit hooks configuration for mcp-secure-server
+# Ensures code quality, type safety, and formatting standards before commits
+
+repos:
+  # Pyright: Static type checking for Python (run directly via additional_dependencies)
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright type checker
+        entry: bash -c 'pyright src/'
+        language: system
+        types: [python]
+        pass_filenames: false
+        exclude: ^(tests|\.venv|build)/
+
+  # Ruff: Linting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.1
+    hooks:
+      - id: ruff
+        args: [--fix]
+        types: [python]
+
+  # Ruff: Code formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.1
+    hooks:
+      - id: ruff-format
+        types: [python]
+
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+        exclude: ^(build|\.venv)/

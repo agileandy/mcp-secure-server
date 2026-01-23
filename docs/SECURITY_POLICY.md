@@ -40,17 +40,17 @@ network:
     - "192.168.0.0/16"   # Private Class C
     - "::1/128"          # IPv6 localhost
     - "fe80::/10"        # IPv6 link-local
-  
+
   allowed_endpoints:
     - host: "api.example.com"
       ports: [443, 8443]
       description: "Example API"
-  
+
   blocked_ports:
     - 22    # SSH
     - 23    # Telnet
     - 3389  # RDP
-  
+
   allow_dns: true
   dns_allowlist:
     - "api.example.com"
@@ -88,7 +88,7 @@ filesystem:
     - "${HOME}/projects/**"
     - "${HOME}/workspace/**"
     - "/tmp/mcp-workspace/**"
-  
+
   denied_paths:
     - "**/.ssh/**"
     - "**/.aws/**"
@@ -229,15 +229,15 @@ network:
     - "10.0.0.0/8"
     - "172.16.0.0/12"
     - "192.168.0.0/16"
-  
+
   allowed_endpoints:
     - host: "lite.duckduckgo.com"
       ports: [443]
       description: "DuckDuckGo search"
-  
+
   blocked_ports:
     - 22
-  
+
   allow_dns: true
   dns_allowlist:
     - "lite.duckduckgo.com"
@@ -246,7 +246,7 @@ filesystem:
   allowed_paths:
     - "${HOME}/projects/**"
     - "/tmp/mcp-workspace/**"
-  
+
   denied_paths:
     - "**/.ssh/**"
     - "**/.aws/**"
