@@ -74,6 +74,7 @@ import sys
 from pathlib import Path
 
 from src.plugins.bugtracker import BugTrackerPlugin
+from src.plugins.figma_stories import FigmaStoriesPlugin
 from src.plugins.websearch import WebSearchPlugin
 from src.protocol.transport import StdioTransport
 from src.server import MCPServer
@@ -130,6 +131,7 @@ def main() -> int:
     # -------------------------------------------------------------------------
     server.register_plugin(WebSearchPlugin())
     server.register_plugin(BugTrackerPlugin())
+    server.register_plugin(FigmaStoriesPlugin())
 
     # Setup transport
     transport = StdioTransport()
