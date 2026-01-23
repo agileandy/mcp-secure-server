@@ -1,0 +1,22 @@
+# CodeRabbit AI Review Configuration
+
+enabled: true
+
+review_style: "detailed"
+
+inline_comments: true
+summary: true
+
+# Tell CodeRabbit to mark comments so Copilot ignores them
+comment_prefix: "copilot:ignore"
+
+# Path-specific instructions
+path_instructions:
+  - path: "src/**/*.py"
+    instructions: "Review for Python best practices, type hints, and security issues"
+  - path: "tests/**/*.py"
+    instructions: "Ensure comprehensive tests following pytest conventions"
+  - path: "*.py"
+    instructions: "Review for Python best practices, type hints, and security issues"
+
+max_inline_comments: 20
